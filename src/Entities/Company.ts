@@ -10,12 +10,12 @@ import {
 import { pascalToSnakeCase } from '../utils/misc'
 // import { Employee } from './Employee'
 
-export const COMPANY_STATUSES = ['active', 'inactive'] as const
-
 @Entity()
 export default class Company {
+  public static STATUSES = ['active', 'inactive'] as const
+
   public static tableName = pascalToSnakeCase(Company.name)
-  // public static SQL = {
+  // public static SQL = { // TODO
   //   TABLE_NAME: pascalToSnakeCase(Company.name),
   //   ['name' satisfies keyof Company]: pascalToSnakeCase('name')
   // }
@@ -35,12 +35,12 @@ export default class Company {
 
   @Column({
     type: 'enum',
-    enum: COMPANY_STATUSES,
-    default: COMPANY_STATUSES[0]
+    enum: Company.STATUSES,
+    default: Company.STATUSES[0]
   })
-  @IsIn([...COMPANY_STATUSES, undefined])
-  status!: (typeof COMPANY_STATUSES)[number]
+  @IsIn([...Company.STATUSES, undefined])
+  status!: (typeof Company.STATUSES)[number]
 
-  // @OneToMany(() => Employee, employee => employee.company)
+  // @OneToMany(() => Employee, employee => employee.company) // TODO:
   // employees!: Employee[]
 }

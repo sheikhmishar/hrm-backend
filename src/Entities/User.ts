@@ -1,10 +1,10 @@
 import { IsEmail, IsIn, IsNotEmpty, IsString, Length } from 'class-validator'
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
 
-export const USER_TYPES = ['superAdmin', 'admin'] as const
-
 @Entity()
 export default class User {
+  public static TYPES = ['superAdmin', 'admin'] as const
+
   @PrimaryGeneratedColumn()
   id!: number
 
@@ -30,9 +30,9 @@ export default class User {
 
   @Column({
     type: 'enum',
-    enum: USER_TYPES,
-    default: USER_TYPES[1]
+    enum: User.TYPES,
+    default: User.TYPES[1]
   })
-  @IsIn([...USER_TYPES, undefined])
-  type!: (typeof USER_TYPES)[number]
+  @IsIn([...User.TYPES, undefined])
+  type!: (typeof User.TYPES)[number]
 }

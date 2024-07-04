@@ -6,8 +6,8 @@ import type { ResultSetHeader } from 'mysql2'
 import fs from 'fs'
 import path from 'path'
 
-import Company, { COMPANY_STATUSES } from '../../Entities/Company'
-import User, { USER_TYPES } from '../../Entities/User'
+import Company from '../../Entities/Company'
+import User from '../../Entities/User'
 import { dbgErrOpt, dbgInfOpt } from '../../configs'
 import AppDataSource from '../../configs/db'
 import { createDebug } from '../../utils/debug'
@@ -38,7 +38,7 @@ const stat = {
   userIds: [] as number[],
   userFails: 0,
   users: { admin: [], superAdmin: [] } as {
-    [type in (typeof USER_TYPES)[number]]: number[]
+    [type in (typeof User.TYPES)[number]]: number[]
   },
   companyIds: [] as number[],
   companyFails: 0
@@ -59,7 +59,7 @@ const seedUsers = async (count: number) => {
   for (let i = 1; i <= count - users.length; i++) {
     const firstName = faker.name.firstName(),
       lastName = faker.name.lastName(),
-      type = faker.random.arrayElement(USER_TYPES)
+      type = faker.random.arrayElement(User.TYPES)
 
     try {
       const user = await transformAndValidate(User, {
@@ -67,7 +67,7 @@ const seedUsers = async (count: number) => {
         email: faker.internet.email(firstName, lastName),
         password: await bcrypt.hash(`${firstName} ${lastName}`, 10),
         phoneNumber: faker.phone.phoneNumber(PHONE_FORMAT),
-        type: faker.random.arrayElement(USER_TYPES)
+        type: faker.random.arrayElement(User.TYPES)
       } satisfies IdLessEntity<User>)
 
       const dbResult = await AppDataSource.manager
@@ -97,7 +97,7 @@ const seedCompanies = async (count: number) => {
     try {
       const company = await transformAndValidate(Company, {
         name: `${faker.date.month()} ${2018 + Math.floor(i / 3)}`,
-        status: faker.random.arrayElement(COMPANY_STATUSES),
+        status: faker.random.arrayElement(Company.STATUSES),
         logo: ''
       } satisfies IdLessEntity<Company>)
 
