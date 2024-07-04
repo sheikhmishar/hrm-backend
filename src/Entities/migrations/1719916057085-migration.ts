@@ -40,7 +40,7 @@ export class Migration1719916057085 implements MigrationInterface {
             CREATE TABLE \`company\` (
                 \`id\` int NOT NULL AUTO_INCREMENT,
                 \`name\` varchar(255) NOT NULL,
-                \`logo\` varchar(255) NOT NULL,
+                \`logo\` varchar(255),
                 \`status\` enum ('active', 'inactive') NOT NULL DEFAULT 'active',
                 PRIMARY KEY (\`id\`)
             ) ENGINE = InnoDB

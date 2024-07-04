@@ -1,14 +1,13 @@
-import { IsNotEmpty, IsString, IsOptional, IsIn } from 'class-validator'
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator'
 import {
   Column,
   Entity,
-  // ManyToOne,
-  // OneToMany,
+  //  OneToMany,
   PrimaryGeneratedColumn
 } from 'typeorm'
 
 import { pascalToSnakeCase } from '../utils/misc'
-// import { Employee } from './Employee'
+// import Employee from './Employee'
 
 @Entity()
 export default class Company {
@@ -28,7 +27,7 @@ export default class Company {
   @IsNotEmpty()
   name!: string
 
-  @Column()
+  @Column({ nullable: true })
   @IsOptional()
   @IsString()
   logo!: string
@@ -41,6 +40,6 @@ export default class Company {
   @IsIn([...Company.STATUSES, undefined])
   status!: (typeof Company.STATUSES)[number]
 
-  // @OneToMany(() => Employee, employee => employee.company) // TODO:
+  // @OneToMany(() => Employee, employee => employee.companyOwned) // TODO:
   // employees!: Employee[]
 }
