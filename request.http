@@ -1,0 +1,77 @@
+@hostname = localhost
+@port = 5000
+@host = http://{{hostname}}:{{port}}
+@api = {{host}}/api
+@createdAt = {{$datetime iso8601}}
+@modifiedBy = {{$processEnv USERNAME}}
+@system = skylane-hrm-_{{$guid} }
+
+#####################################################
+
+
+###
+GET {{api}}/seed
+
+###
+###
+# @name loginReq
+POST {{api}}/users/login
+Content-Type: application/json
+
+{"inputData":"test2@gmail.com","password":"test2@gmail.com"}
+###
+POST {{api}}/users/register
+Content-Type: application/json
+
+{
+  "name":"test2@gmail.com",
+  "email":"test2@gmail.com",
+  "phoneNumber":"test2@gmail.com",
+  "password":"test2@gmail.com"
+}
+
+###
+GET {{api}}/users
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/users/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/users/self
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+PUT {{api}}/users/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "email":"test2@gmail.com",
+  "email3":"test23@gmail.com"
+}
+
+
+
+###
+POST {{api}}/companies
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{ "name":"test2@gmail.com" }
+
+###
+GET {{api}}/companies
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/companies/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+PUT {{api}}/companies/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "name":"test266@gmail.com",
+  "status":"inactive",
+  "logo":"ffgfg",
+  "email3":"test23@gmail.com"
+}
