@@ -30,7 +30,7 @@ export default class Company {
   @Column({ nullable: true })
   @IsOptional()
   @IsString()
-  logo!: string
+  logo?: string
 
   @Column({
     type: 'enum',

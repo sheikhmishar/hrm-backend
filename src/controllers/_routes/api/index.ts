@@ -9,8 +9,8 @@ import usersRouter from './users'
 import branchesRouter from './branches'
 import departmentsRouter from './departments'
 import designationsRouter from './designations'
-import dutytypesRouter from './duty-types'
-import salarytypesRouter from './salary-types'
+import dutyTypesRouter from './duty-types'
+import salaryTypesRouter from './salary-types'
 
 const router = express.Router()
 
@@ -21,7 +21,7 @@ router.use(companiesRouter)
 router.use(branchesRouter)
 router.use(departmentsRouter)
 router.use(designationsRouter)
-router.use(dutytypesRouter)
-router.use(salarytypesRouter)
+router.use(dutyTypesRouter)
+router.use(salaryTypesRouter)
 
 export default router
