@@ -7,7 +7,12 @@ import { EntityMetadataNotFoundError } from 'typeorm'
 import { dbgErrOpt, dbgInfOpt, ResponseError } from '../../configs'
 import AppDataSource from '../../configs/db'
 import env from '../../configs/env'
-import { duplicateEntryError, foreignKeyError, SQL_DUP_ENTITY_REGEX, SQL_REF_ENTITY_REGEX } from '../../utils/dbHelpers'
+import {
+  duplicateEntryError,
+  foreignKeyError,
+  SQL_DUP_ENTITY_REGEX,
+  SQL_REF_ENTITY_REGEX
+} from '../../utils/dbHelpers'
 import { createDebug } from '../../utils/debug'
 import { capitalizeDelim, singularify } from '../../utils/misc'
 import { getStatusText, statusCodes } from './response-code'
@@ -35,6 +40,8 @@ const serverErrors = [
   'ENOTFOUND' // HTTP REQUEST
 ]
 
+import { snakeCase } from 'typeorm/util/StringUtils'
+
 type ErrorHandler = ErrorRequestHandler<{}, { message: string }>
 const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
   if (
@@ -47,15 +54,23 @@ const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
 
   if (Array.isArray(err) && err[0] instanceof ValidationError) {
     responseError.status = UNPROCESSABLE_ENTITY
-    responseError.message = (err as ValidationError[]).reduce(
-      (result, { constraints }) => {
+    responseError.message = (err as ValidationError[])
+      .slice(0, env.production ? 1 : err.length)
+      .reduce((result, { constraints, property, target }) => {
         const message = Object.values(constraints || {}).reduce(
-          (prev, curr) => prev + (curr ? curr + ', ' : '')
+          (concatted, curr) =>
+            concatted.concat(
+              curr
+                ? (concatted ? ', ' : '') +
+                    (target?.constructor.name || '') +
+                    ' ' +
+                    curr.replace(property, capitalizeDelim(snakeCase(property)))
+                : ''
+            ),
+          ''
         )
-        return result + (message ? message + ' | ' : '')
-      }, // FIXME: BLANK
-      ''
-    )
+        return result + (message ? (result ? ' | ' : '') + message : '')
+      }, '')
   } else if (serverErrors.includes(err.code))
     responseError.message = getStatusText(INTERNAL_SERVER_ERROR)
   else if (err.code === foreignKeyError) {
@@ -76,8 +91,7 @@ const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
     responseError.message = `Duplicate '${capitalizeDelim(
       singularify(entity)
     )}'`
-  }
-  else if (err.name === 'MulterError') {
+  } else if (err.name === 'MulterError') {
     const error = err as MulterError
     responseError.status = UNPROCESSABLE_ENTITY
     if (error.field) responseError.message += ` '${error.field}'`

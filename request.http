@@ -75,3 +75,29 @@ Content-Type: application/json
   "logo":"ffgfg",
   "email3":"test23@gmail.com"
 }
+
+
+###
+POST {{api}}/employees
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{ "name":"test2@gmail.com" }
+
+###
+GET {{api}}/employees
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/employees/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+PUT {{api}}/employees/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "name":"test266@gmail.com",
+  "status":"inactive",
+  "logo":"ffgfg",
+  "email3":"test23@gmail.com"
+}
