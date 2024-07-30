@@ -56,7 +56,7 @@ const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
     responseError.status = UNPROCESSABLE_ENTITY
     responseError.message = (err as ValidationError[])
       .slice(0, env.production ? 1 : err.length)
-      .reduce((result, { constraints, property, target }) => {
+      .reduce((result, { constraints, property, target, children }) => {
         const message = Object.values(constraints || {}).reduce(
           (concatted, curr) =>
             concatted.concat(
@@ -69,7 +69,30 @@ const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
             ),
           ''
         )
-        return result + (message ? (result ? ' | ' : '') + message : '')
+        return (
+          result +
+            (message ? (result ? ' | ' : '') + message : '') +
+            children
+              ?.slice(0, env.production ? 1 : err.length)
+              .reduce((result, { constraints, property, target }) => {
+                const message = Object.values(constraints || {}).reduce(
+                  (concatted, curr) =>
+                    concatted.concat(
+                      curr
+                        ? (concatted ? ', ' : '') +
+                            (target?.constructor.name || '') +
+                            ' ' +
+                            curr.replace(
+                              property,
+                              capitalizeDelim(snakeCase(property))
+                            )
+                        : ''
+                    ),
+                  ''
+                )
+                return result + (message ? (result ? ' | ' : '') + message : '')
+              }, '') || ''
+        )
       }, '')
   } else if (serverErrors.includes(err.code))
     responseError.message = getStatusText(INTERNAL_SERVER_ERROR)

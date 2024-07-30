@@ -1,4 +1,6 @@
+import { Type } from 'class-transformer'
 import {
+  IsDate,
   IsDateString,
   IsEmail,
   IsIn,
@@ -7,23 +9,32 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  Length
+  Length,
+  ValidateNested
 } from 'class-validator'
 import {
   Column,
   CreateDateColumn,
   Entity,
   Index,
-  // ManyToOne,
-  PrimaryGeneratedColumn
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn,
+  Relation
 } from 'typeorm'
 
 import AppDataSource from '../configs/db'
-// import Company from './Company'
+import Branch from './Branch'
+import Company from './Company'
+import Department from './Department'
+import Designation from './Designation'
+import DutyType from './DutyType'
+import SalaryType from './SalaryType'
 
 @Entity()
 export default class Employee {
   public static STATUSES = ['active', 'inactive'] as const
+  public static APPLICABILITY = ['applicable', 'inApplicable'] as const
   public static GENDERS = ['Male', 'Female', 'Others'] as const
 
   @PrimaryGeneratedColumn()
@@ -32,7 +43,7 @@ export default class Employee {
   @Column()
   @Index({ unique: true })
   @IsNotEmpty()
-  employeeId!: string
+  eId!: string
 
   @Column()
   @Length(1, 20)
@@ -43,10 +54,10 @@ export default class Employee {
   @IsNotEmpty()
   phoneNumber!: string
 
-  @Column()
+  @Column({ nullable: true })
   @IsOptional()
   @IsString()
-  altPhoneNumber!: string
+  altPhoneNumber?: string
 
   @Column()
   @IsEmail()
@@ -64,40 +75,72 @@ export default class Employee {
 
   @Column({ type: 'enum', enum: Employee.GENDERS })
   @IsIn(Employee.GENDERS)
-  gender!: string
+  gender!: (typeof Employee.GENDERS)[number]
 
   @Column({ nullable: true })
   @IsOptional()
   @IsString()
   photo?: string
 
-  @Column()
+  @ManyToOne(() => Company, company => company.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  companyId!: number
+  @ValidateNested()
+  @Type(_ => Company)
+  company!: Company
 
-  // @IsNotEmpty()
-  // @ManyToOne(() => Company, company => company.employees)
-  // companyOwned!: Company
-
-  @Column()
+  @ManyToOne(() => Department, department => department.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  departmentId!: number
+  @ValidateNested()
+  @Type(_ => Department)
+  department!: Department
 
-  @Column()
+  @ManyToOne(() => Branch, branch => branch.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  branchId!: number
+  @ValidateNested()
+  @Type(_ => Branch)
+  branch!: Branch
 
-  @Column()
+  @ManyToOne(() => Designation, designation => designation.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  designationId!: number
+  @ValidateNested()
+  @Type(_ => Designation)
+  designation!: Designation
 
-  @Column()
+  @ManyToOne(() => DutyType, dutyType => dutyType.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  dutyTypeId!: number
+  @ValidateNested()
+  @Type(_ => DutyType)
+  dutyType!: DutyType
 
-  @Column()
+  @ManyToOne(() => SalaryType, salaryType => salaryType.employees, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
   @IsNotEmpty()
-  salaryTypeId!: number
+  @ValidateNested()
+  @Type(_ => SalaryType)
+  salaryType!: Relation<SalaryType> // TODO:
 
   @Column({ type: 'date' })
   @IsNotEmpty()
@@ -125,38 +168,33 @@ export default class Employee {
   @IsMilitaryTime()
   officeEndTime!: string
 
-  @Column({
-    type: 'enum',
-    enum: ['applicable', 'notApplicable']
-  })
-  @IsNotEmpty()
-  checkedInLateFee!: string
+  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
+  @IsIn(Employee.APPLICABILITY)
+  checkedInLateFee!: (typeof Employee.APPLICABILITY)[number]
 
-  @Column({
-    type: 'enum',
-    enum: ['applicable', 'notApplicable']
-  })
-  @IsNotEmpty()
-  overtime!: string
+  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
+  @IsIn(Employee.APPLICABILITY)
+  overtime!: (typeof Employee.APPLICABILITY)[number]
 
   @Column({ type: 'date' })
-  noticePeriod!: string
+  @IsOptional()
+  @IsDateString()
+  noticePeriod?: string
+
+  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
+  @IsIn(Employee.APPLICABILITY)
+  extraBonus!: (typeof Employee.APPLICABILITY)[number]
 
   @Column({
     type: 'enum',
-    enum: ['applicable', 'notApplicable']
+    enum: Employee.STATUSES,
+    default: Employee.STATUSES[0]
   })
-  @IsNotEmpty()
-  extraBonus!: string
-
-  @Column({
-    type: 'enum',
-    enum: ['active', 'inactive'],
-    default: 'active'
-  })
-  status!: string
+  @IsIn([...Employee.STATUSES, undefined])
+  status!: (typeof Employee.STATUSES)[number]
 
   @CreateDateColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  @IsDate()
   createdDate!: Date
 
   static getAbsentEmployeesAtDate = (date: string) =>

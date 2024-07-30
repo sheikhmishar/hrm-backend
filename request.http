@@ -82,7 +82,40 @@ POST {{api}}/employees
 Authorization: Bearer {{loginReq.response.body.$.token}}
 Content-Type: application/json
 
-{ "name":"test2@gmail.com" }
+{
+  "name": "test266@gmail.com",
+  "email": "test266@gmail.com",
+  "fullAddress": "test266@gmail.com",
+  "gender": "Male",
+  "phoneNumber": "test266@gmail.com",
+  "altPhoneNumber": "test266@gmail.com",
+  "createdDate": "test266@gmail.com",
+  "dateOfBirth": "1999-01-01",
+  "dateOfJoining": "1999-01-01",
+  "eid": "{{$guid}}",
+  "checkedInLateFee": "notApplicable",
+  "extraBonus": "notApplicable",
+  "branchId": 0,
+  "companyId": 0,
+  "departmentId": 0,
+  "designationId": 0,
+  "dutyTypeId": 0,
+  "noticePeriod": "2029-01-01",
+  "officeEndTime": "11:00",
+  "officeStartTime": "06:00",
+  "overtime": "notApplicable",
+  "salaryTypeId": 0,
+  "unitSalary": 0,
+  "companyOwned": {
+    "name": "Company",
+    "logo": null,
+    "id": 14
+  },
+  "photo": "",
+  "taskWisePayment": 0,
+  "wordLimit": 0,
+  "status": ""
+}
 
 ###
 GET {{api}}/employees

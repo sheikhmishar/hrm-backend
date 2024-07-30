@@ -1,5 +1,4 @@
 import type { RequestHandler } from 'express'
-import type { ResultSetHeader } from 'mysql2'
 
 import Employee from '../Entities/Employee'
 import IdParams from '../Entities/_IdParams'
@@ -9,7 +8,7 @@ import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
 
-const { CREATED, NOT_FOUND, NOT_MODIFIED } = statusCodes
+const { CREATED, NOT_FOUND } = statusCodes
 const { _params } = SITEMAP.employees
 
 export const allEmployees: RequestHandler<{}, Employee[]> = async (
@@ -18,7 +17,18 @@ export const allEmployees: RequestHandler<{}, Employee[]> = async (
   next
 ) => {
   try {
-    res.json(await AppDataSource.getRepository(Employee).find())
+    res.json(
+      await AppDataSource.getRepository(Employee).find({
+        relations: {
+          company: true,
+          branch: true,
+          department: true,
+          designation: true,
+          dutyType: true,
+          salaryType: true
+        }
+      })
+    )
   } catch (err) {
     next(err)
   }
@@ -32,7 +42,15 @@ export const employeeDetails: RequestHandler<
     const { id } = await transformAndValidate(IdParams, req.params)
 
     const employee = await AppDataSource.getRepository(Employee).findOne({
-      where: { id }
+      where: { id },
+      relations: {
+        company: true,
+        branch: true,
+        department: true,
+        designation: true,
+        dutyType: true,
+        salaryType: true
+      }
     })
     if (!employee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
@@ -49,11 +67,15 @@ export const addEmployee: RequestHandler<
 > = async (req, res, next) => {
   try {
     const employee = await transformAndValidate(Employee, req.body)
+    if (req.body.branch?.id) employee.branch.id = req.body.branch.id
+    if (req.body.company?.id) employee.company.id = req.body.company.id
+    if (req.body.department?.id) employee.department.id = req.body.department.id
+    if (req.body.designation?.id)
+      employee.designation.id = req.body.designation.id
+    if (req.body.dutyType?.id) employee.dutyType.id = req.body.dutyType.id
+    if (req.body.salaryType?.id) employee.salaryType.id = req.body.salaryType.id
 
-    const insertResult = await AppDataSource.manager.insert(Employee, employee)
-    const employeeInsertResultRaw: ResultSetHeader = insertResult.raw
-    if (!employeeInsertResultRaw.affectedRows)
-      throw new ResponseError('Employee unchanged', NOT_MODIFIED)
+    await AppDataSource.manager.save(Employee, employee)
 
     res
       .status(CREATED)
@@ -79,6 +101,13 @@ export const updateEmployee: RequestHandler<
       ...previousEmployee,
       ...req.body
     })
+    if (req.body.branch?.id) employee.branch.id = req.body.branch.id
+    if (req.body.company?.id) employee.company.id = req.body.company.id
+    if (req.body.department?.id) employee.department.id = req.body.department.id
+    if (req.body.designation?.id)
+      employee.designation.id = req.body.designation.id
+    if (req.body.dutyType?.id) employee.dutyType.id = req.body.dutyType.id
+    if (req.body.salaryType?.id) employee.salaryType.id = req.body.salaryType.id
 
     const result = await AppDataSource.manager.update(
       Employee,

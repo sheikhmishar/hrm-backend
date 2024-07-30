@@ -11,7 +11,7 @@ import Company from '../../Entities/Company'
 import Department from '../../Entities/Department'
 import Designation from '../../Entities/Designation'
 import DutyType from '../../Entities/DutyType'
-// import Employee from '../../Entities/Employee'
+import Employee from '../../Entities/Employee'
 import SalaryType from '../../Entities/SalaryType'
 import User from '../../Entities/User'
 import { dbgErrOpt, dbgInfOpt } from '../../configs'
@@ -66,7 +66,7 @@ type IdLessEntity<T extends { id: number }> = OmitKey<T, 'id'>
 const PHONE_FORMAT = '+8801#########'
 
 const seedUsers = async (count: number) => {
-  const users = await AppDataSource.manager.getRepository(User).find()
+  const users = await AppDataSource.getRepository(User).find()
   users.forEach(({ id, type }) => stat.users[type].push(id))
 
   for (let i = 1; i <= count - users.length; i++) {
@@ -83,9 +83,7 @@ const seedUsers = async (count: number) => {
         type: faker.random.arrayElement(User.TYPES)
       } satisfies IdLessEntity<User>)
 
-      const dbResult = await AppDataSource.manager
-        .getRepository(User)
-        .insert(user)
+      const dbResult = await AppDataSource.getRepository(User).insert(user)
       const dbResultRaw: ResultSetHeader = dbResult.raw
       if (!dbResultRaw.affectedRows)
         throw new Error('User ENTRY FAILED:' + user)
@@ -109,7 +107,8 @@ const seedCompanies = async (count: number) => {
       const company = await transformAndValidate(Company, {
         name: faker.random.words(),
         status: faker.random.arrayElement(Company.STATUSES),
-        logo: faker.image.business(50, 50)
+        logo: faker.image.business(50, 50),
+        employees: []
       } satisfies IdLessEntity<Company>)
 
       const dbResult = await AppDataSource.getRepository(Company).insert(
@@ -137,7 +136,8 @@ const seedBranches = async (count: number) => {
     try {
       const branch = await transformAndValidate(Branch, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Branch.STATUSES)
+        status: faker.random.arrayElement(Branch.STATUSES),
+        employees: []
       } satisfies IdLessEntity<Branch>)
 
       const dbResult = await AppDataSource.getRepository(Branch).insert(branch)
@@ -163,7 +163,8 @@ const seedDepartments = async (count: number) => {
     try {
       const department = await transformAndValidate(Department, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Department.STATUSES)
+        status: faker.random.arrayElement(Department.STATUSES),
+        employees: []
       } satisfies IdLessEntity<Department>)
 
       const dbResult = await AppDataSource.getRepository(Department).insert(
@@ -191,7 +192,8 @@ const seedDesignations = async (count: number) => {
     try {
       const designation = await transformAndValidate(Designation, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Designation.STATUSES)
+        status: faker.random.arrayElement(Designation.STATUSES),
+        employees: []
       } satisfies IdLessEntity<Designation>)
 
       const dbResult = await AppDataSource.getRepository(Designation).insert(
@@ -221,7 +223,8 @@ const seedDutyTypes = async (count: number) => {
     try {
       const dutyType = await transformAndValidate(DutyType, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(DutyType.STATUSES)
+        status: faker.random.arrayElement(DutyType.STATUSES),
+        employees: []
       } satisfies IdLessEntity<DutyType>)
 
       const dbResult = await AppDataSource.getRepository(DutyType).insert(
@@ -249,7 +252,8 @@ const seedSalaryTypes = async (count: number) => {
     try {
       const salaryType = await transformAndValidate(SalaryType, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(SalaryType.STATUSES)
+        status: faker.random.arrayElement(SalaryType.STATUSES),
+        employees: []
       } satisfies IdLessEntity<SalaryType>)
 
       const dbResult = await AppDataSource.getRepository(SalaryType).insert(
@@ -269,62 +273,77 @@ const seedSalaryTypes = async (count: number) => {
     }
   }
 }
-// const seedEmployees = async (count: number) => {
-//   const employees = await AppDataSource.getRepository(Employee).find()
-//   employees.forEach(({ id }) => stat.employeeIds.push(id))
+const seedEmployees = async (count: number) => {
+  const employees = await AppDataSource.getRepository(Employee).find()
+  employees.forEach(({ id }) => stat.employeeIds.push(id))
 
-//   for (let i = 1; i <= count - employees.length; i++) {
-//     const firstName = faker.name.firstName(),
-//       lastName = faker.name.lastName()
-//     try {
-//       const employee = await transformAndValidate(Employee, {
-//         name: `${firstName} ${lastName}`,
-//         altPhoneNumber,
-//         branchId,
-//         checkedInLateFee,
-//         companyId,
-//         createdDate,
-//         dateOfBirth,
-//         dateOfJoining,
-//         departmentId,
-//         designationId,
-//         dutyTypeId,
-//         email,
-//         employeeId,
-//         extraBonus,
-//         fullAddress,
-//         gender,
-//         noticePeriod,
-//         officeEndTime,
-//         officeStartTime,
-//         overtime,
-//         phoneNumber,
-//         salaryTypeId,
-//         unitSalary,
-//         id,
-//         photo,
-//         taskWisePayment,
-//         wordLimit,
-//         status: faker.random.arrayElement(Employee.STATUSES)
-//       } satisfies IdLessEntity<Employee>)
+  for (let i = 1; i <= count - employees.length; i++) {
+    const firstName = faker.name.firstName(),
+      lastName = faker.name.lastName()
+    try {
+      const employee = await transformAndValidate(Employee, {
+        name: `${firstName} ${lastName}`,
+        email: faker.internet.email(firstName, lastName),
+        phoneNumber: faker.phone.phoneNumber(PHONE_FORMAT),
+        altPhoneNumber: faker.phone.phoneNumber(PHONE_FORMAT),
+        fullAddress: faker.address.secondaryAddress(),
+        gender: faker.random.arrayElement(Employee.GENDERS),
+        createdDate: faker.date.past(),
+        dateOfBirth:
+          faker.date.past().toISOString().split('T')[0] || '1999-01-01',
+        dateOfJoining:
+          faker.date.past().toISOString().split('T')[0] || '1999-01-01',
+        eId: faker.datatype.uuid(),
+        noticePeriod:
+          faker.date.future().toISOString().split('T')[0] || '2029-01-01',
+        officeEndTime: '11:00',
+        officeStartTime: '06:00',
+        checkedInLateFee: faker.random.arrayElement(Employee.APPLICABILITY),
+        extraBonus: faker.random.arrayElement(Employee.APPLICABILITY),
+        overtime: faker.random.arrayElement(Employee.APPLICABILITY),
+        unitSalary: faker.random.number(),
+        photo: '',
+        taskWisePayment: faker.random.number(),
+        wordLimit: faker.random.number(),
+        status: faker.random.arrayElement(Employee.STATUSES),
+        company: (await AppDataSource.getRepository(Company).findOneBy({
+          id: faker.random.arrayElement(stat.companyIds)
+        }))!,
+        // branch: { id: faker.random.arrayElement(stat.branchIds) }
+        branch: (await AppDataSource.getRepository(Branch).findOneBy({
+          id: faker.random.arrayElement(stat.branchIds)
+        }))!,
+        department: (await AppDataSource.getRepository(Department).findOneBy({
+          id: faker.random.arrayElement(stat.departmentIds)
+        }))!,
+        designation: (await AppDataSource.getRepository(Designation).findOneBy({
+          id: faker.random.arrayElement(stat.designationIds)
+        }))!,
+        dutyType: (await AppDataSource.getRepository(DutyType).findOneBy({
+          id: faker.random.arrayElement(stat.dutyTypeIds)
+        }))!,
+        salaryType: (await AppDataSource.getRepository(SalaryType).findOneBy({
+          id: faker.random.arrayElement(stat.salaryTypeIds)
+        }))!
+      } satisfies IdLessEntity<Employee>) // TODO: add id
 
-//       const dbResult = await AppDataSource.getRepository(Employee).insert(
-//         employee
-//       )
-//       const dbResultRaw: ResultSetHeader = dbResult.raw
-//       if (!dbResultRaw.affectedRows)
-//         throw new Error('Employee ENTRY FAILED:' + employee)
+      const dbResult = await AppDataSource.getRepository(Employee).insert(
+        employee
+      )
+      const dbResultRaw: ResultSetHeader = dbResult.raw
+      if (!dbResultRaw.affectedRows)
+        throw new Error('Employee ENTRY FAILED:' + employee)
 
-//       stat.employeeIds.push(employee.id)
+      stat.employeeIds.push(employee.id)
 
-//       await appendFile(`const employee_${i} = ${pretty(employee)};\n`)
-//     } catch (error) {
-//       stat.employeeFails++
-//       await appendFile(`const failed_employee_${i} = ${pretty(error as any)}`)
-//       debugError(error)
-//     }
-//   }
-// }
+      await appendFile(`const employee_${i} = ${pretty(employee)};\n`)
+    } catch (error) {
+      stat.employeeFails++
+      await appendFile(`const failed_employee_${i} = ${pretty(error as any)}`)
+      debugError(error)
+    }
+  }
+}
 
 export const startSeeding = async () => {
   try {
@@ -337,7 +356,7 @@ export const startSeeding = async () => {
     await seedDesignations(8)
     await seedDutyTypes(8)
     await seedSalaryTypes(8)
-    // await seedEmployees(8)
+    await seedEmployees(80)
 
     await appendFile('')
     await appendFile('// Statistics')

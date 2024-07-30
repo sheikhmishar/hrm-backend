@@ -18,7 +18,11 @@ export const allCompanies: RequestHandler<{}, Company[]> = async (
   next
 ) => {
   try {
-    res.json(await AppDataSource.getRepository(Company).find())
+    res.json(
+      await AppDataSource.getRepository(Company).find({
+        relations: { employees: true }
+      })
+    )
   } catch (err) {
     next(err)
   }

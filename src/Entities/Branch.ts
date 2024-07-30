@@ -1,5 +1,7 @@
-import { IsNotEmpty, IsString, IsIn } from 'class-validator'
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { IsIn, IsNotEmpty, IsString } from 'class-validator'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+
+import Employee from './Employee'
 
 @Entity()
 export default class Branch {
@@ -20,4 +22,7 @@ export default class Branch {
   })
   @IsIn([...Branch.STATUSES, undefined])
   status!: (typeof Branch.STATUSES)[number]
+
+  @OneToMany(() => Employee, employee => employee.company)
+  employees!: Employee[]
 }
