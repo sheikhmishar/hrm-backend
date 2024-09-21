@@ -94,20 +94,32 @@ export const updateEmployee: RequestHandler<
     const { id } = await transformAndValidate(IdParams, req.params)
     const previousEmployee = await AppDataSource.getRepository(
       Employee
-    ).findOneBy({
-      id
+    ).findOne({
+      where: { id },
+      relations: {
+        company: true,
+        branch: true,
+        department: true,
+        designation: true,
+        dutyType: true,
+        salaryType: true
+      }
     })
+    if (!previousEmployee)
+      throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
     const employee = await transformAndValidate(Employee, {
       ...previousEmployee,
       ...req.body
     })
-    if (req.body.branch?.id) employee.branch.id = req.body.branch.id
-    if (req.body.company?.id) employee.company.id = req.body.company.id
-    if (req.body.department?.id) employee.department.id = req.body.department.id
-    if (req.body.designation?.id)
-      employee.designation.id = req.body.designation.id
-    if (req.body.dutyType?.id) employee.dutyType.id = req.body.dutyType.id
-    if (req.body.salaryType?.id) employee.salaryType.id = req.body.salaryType.id
+    employee.branch.id = req.body.branch?.id || previousEmployee.branch.id
+    employee.company.id = req.body.company?.id || previousEmployee.company.id
+    employee.department.id =
+      req.body.department?.id || previousEmployee.department.id
+    employee.designation.id =
+      req.body.designation?.id || previousEmployee.designation.id
+    employee.dutyType.id = req.body.dutyType?.id || previousEmployee.dutyType.id
+    employee.salaryType.id =
+      req.body.salaryType?.id || previousEmployee.salaryType.id
 
     const result = await AppDataSource.manager.update(
       Employee,

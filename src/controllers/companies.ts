@@ -36,7 +36,8 @@ export const companyDetails: RequestHandler<
     const { id } = await transformAndValidate(IdParams, req.params)
 
     const company = await AppDataSource.getRepository(Company).findOne({
-      where: { id }
+      where: { id },
+      relations: { employees: true }
     })
     if (!company)
       throw new ResponseError(`No Company with ID: ${id}`, NOT_FOUND)

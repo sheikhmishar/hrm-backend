@@ -61,6 +61,22 @@ const stat = {
   employeeFails: 0
 }
 
+const defaultDepartment: Department = {
+  id: -1,
+  name: 'something',
+  status: 'active'
+}
+const defaultBranch: Branch = { ...defaultDepartment }
+const defaultDesignation: Designation = { ...defaultDepartment }
+const defaultDutyType: DutyType = { ...defaultDepartment }
+const defaultSalaryType: SalaryType = { ...defaultDepartment }
+const defaultCompany: Company = {
+  ...defaultDepartment,
+  logo: '',
+  status: 'active',
+  employees: []
+}
+
 type IdLessEntity<T extends { id: number }> = OmitKey<T, 'id'>
 
 const PHONE_FORMAT = '+8801#########'
@@ -136,8 +152,7 @@ const seedBranches = async (count: number) => {
     try {
       const branch = await transformAndValidate(Branch, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Branch.STATUSES),
-        employees: []
+        status: faker.random.arrayElement(Branch.STATUSES)
       } satisfies IdLessEntity<Branch>)
 
       const dbResult = await AppDataSource.getRepository(Branch).insert(branch)
@@ -163,8 +178,7 @@ const seedDepartments = async (count: number) => {
     try {
       const department = await transformAndValidate(Department, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Department.STATUSES),
-        employees: []
+        status: faker.random.arrayElement(Department.STATUSES)
       } satisfies IdLessEntity<Department>)
 
       const dbResult = await AppDataSource.getRepository(Department).insert(
@@ -192,8 +206,7 @@ const seedDesignations = async (count: number) => {
     try {
       const designation = await transformAndValidate(Designation, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(Designation.STATUSES),
-        employees: []
+        status: faker.random.arrayElement(Designation.STATUSES)
       } satisfies IdLessEntity<Designation>)
 
       const dbResult = await AppDataSource.getRepository(Designation).insert(
@@ -223,8 +236,7 @@ const seedDutyTypes = async (count: number) => {
     try {
       const dutyType = await transformAndValidate(DutyType, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(DutyType.STATUSES),
-        employees: []
+        status: faker.random.arrayElement(DutyType.STATUSES)
       } satisfies IdLessEntity<DutyType>)
 
       const dbResult = await AppDataSource.getRepository(DutyType).insert(
@@ -252,8 +264,7 @@ const seedSalaryTypes = async (count: number) => {
     try {
       const salaryType = await transformAndValidate(SalaryType, {
         name: faker.random.words(),
-        status: faker.random.arrayElement(SalaryType.STATUSES),
-        employees: []
+        status: faker.random.arrayElement(SalaryType.STATUSES)
       } satisfies IdLessEntity<SalaryType>)
 
       const dbResult = await AppDataSource.getRepository(SalaryType).insert(
@@ -294,8 +305,9 @@ const seedEmployees = async (count: number) => {
         dateOfJoining:
           faker.date.past().toISOString().split('T')[0] || '1999-01-01',
         eId: faker.datatype.uuid(),
-        noticePeriod:
-          faker.date.future().toISOString().split('T')[0] || '2029-01-01',
+        noticePeriod: faker.random.boolean()
+          ? faker.date.future().toISOString().split('T')[0] || '2029-01-01'
+          : undefined,
         officeEndTime: '11:00',
         officeStartTime: '06:00',
         checkedInLateFee: faker.random.arrayElement(Employee.APPLICABILITY),
@@ -303,29 +315,24 @@ const seedEmployees = async (count: number) => {
         overtime: faker.random.arrayElement(Employee.APPLICABILITY),
         unitSalary: faker.random.number(),
         photo: '',
-        taskWisePayment: faker.random.number(),
-        wordLimit: faker.random.number(),
+        taskWisePayment: faker.random.boolean()
+          ? faker.random.number()
+          : undefined,
+        wordLimit: faker.random.boolean() ? faker.random.number() : undefined,
         status: faker.random.arrayElement(Employee.STATUSES),
-        company: (await AppDataSource.getRepository(Company).findOneBy({
-          id: faker.random.arrayElement(stat.companyIds)
-        }))!,
-        // branch: { id: faker.random.arrayElement(stat.branchIds) }
-        branch: (await AppDataSource.getRepository(Branch).findOneBy({
-          id: faker.random.arrayElement(stat.branchIds)
-        }))!,
-        department: (await AppDataSource.getRepository(Department).findOneBy({
-          id: faker.random.arrayElement(stat.departmentIds)
-        }))!,
-        designation: (await AppDataSource.getRepository(Designation).findOneBy({
-          id: faker.random.arrayElement(stat.designationIds)
-        }))!,
-        dutyType: (await AppDataSource.getRepository(DutyType).findOneBy({
-          id: faker.random.arrayElement(stat.dutyTypeIds)
-        }))!,
-        salaryType: (await AppDataSource.getRepository(SalaryType).findOneBy({
-          id: faker.random.arrayElement(stat.salaryTypeIds)
-        }))!
-      } satisfies IdLessEntity<Employee>) // TODO: add id
+        company: defaultCompany,
+        branch: defaultBranch,
+        department: defaultDepartment,
+        designation: defaultDesignation,
+        dutyType: defaultDutyType,
+        salaryType: defaultSalaryType
+      } satisfies IdLessEntity<Employee>)
+      employee.company.id = faker.random.arrayElement(stat.companyIds)
+      employee.branch.id = faker.random.arrayElement(stat.branchIds)
+      employee.department.id = faker.random.arrayElement(stat.departmentIds)
+      employee.designation.id = faker.random.arrayElement(stat.designationIds)
+      employee.dutyType.id = faker.random.arrayElement(stat.dutyTypeIds)
+      employee.salaryType.id = faker.random.arrayElement(stat.salaryTypeIds)
 
       const dbResult = await AppDataSource.getRepository(Employee).insert(
         employee

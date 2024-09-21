@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ES2019",
     "module": "CommonJS",
     "checkJs": true,
     "allowJs": true, // breaks auto type determine

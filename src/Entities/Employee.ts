@@ -4,12 +4,12 @@ import {
   IsDateString,
   IsEmail,
   IsIn,
-  IsMilitaryTime,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Length,
+  Matches,
   ValidateNested
 } from 'class-validator'
 import {
@@ -23,7 +23,6 @@ import {
   Relation
 } from 'typeorm'
 
-import AppDataSource from '../configs/db'
 import Branch from './Branch'
 import Company from './Company'
 import Department from './Department'
@@ -92,50 +91,35 @@ export default class Employee {
   @Type(_ => Company)
   company!: Company
 
-  @ManyToOne(() => Department, department => department.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(() => Department, { cascade: true, nullable: false })
   @JoinColumn()
   @IsNotEmpty()
   @ValidateNested()
   @Type(_ => Department)
   department!: Department
 
-  @ManyToOne(() => Branch, branch => branch.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(() => Branch, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
   @ValidateNested()
   @Type(_ => Branch)
   branch!: Branch
 
-  @ManyToOne(() => Designation, designation => designation.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(() => Designation, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
   @ValidateNested()
   @Type(_ => Designation)
   designation!: Designation
 
-  @ManyToOne(() => DutyType, dutyType => dutyType.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(() => DutyType, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
   @ValidateNested()
   @Type(_ => DutyType)
   dutyType!: DutyType
 
-  @ManyToOne(() => SalaryType, salaryType => salaryType.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(() => SalaryType, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
   @ValidateNested()
@@ -161,11 +145,15 @@ export default class Employee {
   wordLimit?: number
 
   @Column({ type: 'time' })
-  @IsMilitaryTime()
+  @Matches(/^(1[0-2]|0?[1-9]):([0-5]?[0-9]):([0-5]?[0-9])$/, {
+    message: 'Office Start Time must match HH:MM:SS format'
+  })
   officeStartTime!: string
 
   @Column({ type: 'time' })
-  @IsMilitaryTime()
+  @Matches(/^(1[0-2]|0?[1-9]):([0-5]?[0-9]):([0-5]?[0-9])$/, {
+    message: 'Office Start Time must match HH:MM:SS format'
+  })
   officeEndTime!: string
 
   @Column({ type: 'enum', enum: Employee.APPLICABILITY })
@@ -197,28 +185,28 @@ export default class Employee {
   @IsDate()
   createdDate!: Date
 
-  static getAbsentEmployeesAtDate = (date: string) =>
-    AppDataSource.manager.query(
-      /*sql*/ `
-    SELECT
-      employee.id,
-      employee.employeeName,
-      employee.photo,
-      d.designationName,
-      c.companyName
-    FROM employee
-    INNER JOIN designation AS d
-      ON d.id = employee.designationId
-    INNER JOIN company AS c
-      ON c.id = employee.companyId
-    LEFT JOIN attendances AS a
-      ON employee.employeeId = a.employee_id_
-        AND a.date = ?
-    WHERE
-      employee.status = 'active'
-      AND employee.dateOfJoining <= ?
-      AND a.employee_id_ IS NULL
-`,
-      [date, date]
-    )
+  // static getAbsentEmployeesAtDate = (date: string) =>
+  //   AppDataSource.manager.query(
+  //     /*sql*/ `
+  //     SELECT
+  //       employee.id,
+  //       employee.employeeName,
+  //       employee.photo,
+  //       d.designationName,
+  //       c.companyName
+  //     FROM employee
+  //     INNER JOIN designation AS d
+  //       ON d.id = employee.designationId
+  //     INNER JOIN company AS c
+  //       ON c.id = employee.companyId
+  //     LEFT JOIN attendances AS a
+  //       ON employee.employeeId = a.employee_id_
+  //         AND a.date = ?
+  //     WHERE
+  //       employee.status = 'active'
+  //       AND employee.dateOfJoining <= ?
+  //       AND a.employee_id_ IS NULL
+  // `,
+  //     [date, date]
+  //   )
 }

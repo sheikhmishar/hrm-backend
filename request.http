@@ -76,6 +76,30 @@ Content-Type: application/json
   "email3":"test23@gmail.com"
 }
 
+###
+GET {{api}}/branches
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+POST {{api}}/branches
+Authorization: Bearer {{loginReq.response.body.$.token}}
+Content-Type: application/json
+
+{
+  "name":"test266@gmail.com",
+  "status":"inactive"
+}
+###
+GET {{api}}/departments
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/designations
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/duty-types
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+GET {{api}}/salary-types
+Authorization: Bearer {{loginReq.response.body.$.token}}
 
 ###
 POST {{api}}/employees
@@ -83,38 +107,58 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 Content-Type: application/json
 
 {
+  "eId": "{{$guid}}",
   "name": "test266@gmail.com",
+  "phoneNumber": "test266@gmail.com",
+  "altPhoneNumber": "test266@gmail.com",
+  "dateOfBirth": "1999-01-01",
   "email": "test266@gmail.com",
   "fullAddress": "test266@gmail.com",
   "gender": "Male",
-  "phoneNumber": "test266@gmail.com",
-  "altPhoneNumber": "test266@gmail.com",
-  "createdDate": "test266@gmail.com",
-  "dateOfBirth": "1999-01-01",
-  "dateOfJoining": "1999-01-01",
-  "eid": "{{$guid}}",
-  "checkedInLateFee": "notApplicable",
-  "extraBonus": "notApplicable",
-  "branchId": 0,
-  "companyId": 0,
-  "departmentId": 0,
-  "designationId": 0,
-  "dutyTypeId": 0,
-  "noticePeriod": "2029-01-01",
-  "officeEndTime": "11:00",
-  "officeStartTime": "06:00",
-  "overtime": "notApplicable",
-  "salaryTypeId": 0,
-  "unitSalary": 0,
-  "companyOwned": {
-    "name": "Company",
-    "logo": null,
-    "id": 14
-  },
   "photo": "",
+  "company": {
+    "id": 1,
+    "name": "Soap pixel Frozen",
+    "logo": "http://placeimg.com/50/50/business",
+    "status": "inactive"
+  },
+  "department": {
+    "id": 1,
+    "name": "tan Florida",
+    "status": "inactive"
+  },
+  "branch": {
+    "id": 1,
+    "name": "payment neural",
+    "status": "active"
+  },
+  "designation": {
+    "id": 1,
+    "name": "invoice",
+    "status": "active"
+  },
+  "dutyType": {
+    "id": 1,
+    "name": "Mobilitysdsd",
+    "status": "active"
+  },
+  "salaryType": {
+    "id": 1,
+    "name": "compressingdsdsdasd",
+    "status": "inactive"
+  },
+  "dateOfJoining": "1999-01-01",
+  "unitSalary": 0,
   "taskWisePayment": 0,
   "wordLimit": 0,
-  "status": ""
+  "officeEndTime": "11:00:00",
+  "officeStartTime": "06:00:00",
+  "checkedInLateFee": "inApplicable",
+  "overtime": "inApplicable",
+  "noticePeriod": "2029-01-01",
+  "extraBonus": "inApplicable",
+  "status": "active",
+  "createdDate": "1999-01-01"
 }
 
 ###
