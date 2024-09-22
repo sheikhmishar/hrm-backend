@@ -2,15 +2,19 @@ import { ValidationError } from 'class-validator'
 import type { RequestHandler } from 'express'
 import type { QueryError } from 'mysql2'
 import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
+import { snakeCase } from 'typeorm/util/StringUtils'
 
 import Employee from '../Entities/Employee'
-import EmployeeAttendance from '../Entities/EmployeeAttendance'
+import EmployeeAttendance, {
+  type CompanyWiseCountByDate
+} from '../Entities/EmployeeAttendance'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError, dbgErrOpt } from '../configs'
 import AppDataSource from '../configs/db'
+import env from '../configs/env'
 import { foreignKeyError } from '../utils/dbHelpers'
 import { createDebug } from '../utils/debug'
-import { BEGIN_DATE, END_DATE } from '../utils/misc'
+import { BEGIN_DATE, END_DATE, capitalizeDelim } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -38,6 +42,29 @@ export const allEmployeeAttendances: RequestHandler<
         },
         relations: { attendances: true }
       })
+    )
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const companyWiseAttendance: RequestHandler<
+  {},
+  CompanyWiseCountByDate[],
+  {},
+  Partial<typeof _queries>
+> = async (req, res, next) => {
+  try {
+    res.json(
+      (
+        (await AppDataSource.getRepository(Employee).query(
+          EmployeeAttendance.SQL_COMPANY_WISE_COUNT_BY_DATE,
+          [req.query.date]
+        )) as CompanyWiseCountByDate[]
+      ).map(data => ({
+        ...data,
+        presentEmployee: parseInt(data.presentEmployee.toString())
+      }))
     )
   } catch (err) {
     next(err)
@@ -116,10 +143,36 @@ export const addEmployeeAttendance: RequestHandler<
         await AppDataSource.manager.insert(EmployeeAttendance, attendance)
         data.push({})
       } catch (error) {
-        debugError(error)
+        debugError(
+          error,
+          Array.isArray(error),
+          Array.isArray(error) && error[0] instanceof ValidationError
+        )
         if (error instanceof ValidationError && Object.keys(error).length) {
           data.push({ error: Object.values(error).find(v => v) || '' })
           continue
+        }
+        if (Array.isArray(error) && error[0] instanceof ValidationError) {
+          data.push({
+            error: (error as ValidationError[])
+              .slice(0, env.production ? 1 : error.length)
+              .reduce((result, { constraints, property }) => {
+                const message = Object.values(constraints || {}).reduce(
+                  (concatted, curr) =>
+                    concatted.concat(
+                      curr
+                        ? (concatted ? ', ' : '') +
+                            curr.replace(
+                              property,
+                              capitalizeDelim(snakeCase(property))
+                            )
+                        : ''
+                    ),
+                  ''
+                )
+                return result + (message ? (result ? ' | ' : '') + message : '')
+              }, '')
+          })
         }
         const mysqlError = error as QueryError
         if (mysqlError.code === foreignKeyError) {

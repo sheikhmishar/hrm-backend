@@ -130,7 +130,6 @@ Content-Type: application/json
   "officeEndTime": "11:00:12",
   "checkedInLateFee": "inApplicable",
   "overtime": "inApplicable",
-  "noticePeriod": "2029-01-01",
   "extraBonus": "inApplicable",
   "status": "active",
   "createdDate": "1999-01-01",
@@ -191,6 +190,9 @@ Content-Type: application/json
 GET {{api}}/attendances?from=2024-01-01&to=2048-01-01
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
+###
+GET {{api}}/attendances/companywise?date=2024-02-16
+Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
 GET {{api}}/attendances/75?from=2024-01-01&to=2048-01-01
 Authorization: Bearer {{loginReq.response.body.$.token}}

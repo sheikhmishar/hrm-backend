@@ -45,10 +45,11 @@ const SITEMAP = {
   },
   attendances: {
     _params: { ...rootParams, employeeId: ':employeeId' },
-    _queries: { from: 'from', to: 'to' },
+    _queries: { from: 'from', to: 'to', date: 'date' },
     _: attendancesRoot,
     post: attendancesRoot,
     get: attendancesRoot,
+    getCompanyWise: `${attendancesRoot}/companywise`,
     getByEmployeeId: `${attendancesRoot}/:employeeId`,
     put: `${attendancesRoot}/:id`,
     delete: `${attendancesRoot}/:id`

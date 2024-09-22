@@ -4,6 +4,9 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import { IsAfterTime } from '../utils/misc'
 import Employee from './Employee'
+import Company from './Company'
+
+export type CompanyWiseCountByDate = Company & { presentEmployee: number }
 
 @Entity()
 export default class EmployeeAttendance {
@@ -34,4 +37,28 @@ export default class EmployeeAttendance {
   @IsNotEmpty()
   @Type(_ => Employee)
   employee!: Employee
+
+  public static readonly SQL_COMPANY_WISE_COUNT_BY_DATE = `
+  SELECT
+    \`company\`.*,
+    IFNULL(\`employee\`.\`presentEmployee\`, 0) \`presentEmployee\`
+  FROM
+    \`company\`
+  LEFT JOIN(
+    SELECT
+      \`employee\`.\`companyId\`,
+      COUNT(*) \`presentEmployee\`
+    FROM
+      \`employee\`
+    INNER JOIN \`employee_attendance\`
+      ON \`employee_attendance\`.\`employeeId\` = \`employee\`.\`id\`
+    WHERE
+      \`employee_attendance\`.\`date\` = ?
+    GROUP BY
+      \`employee\`.\`id\`,
+      \`employee\`.\`companyId\`
+  ) \`employee\`
+  ON
+    \`company\`.\`id\` = \`employee\`.\`companyId\`;
+  `
 }

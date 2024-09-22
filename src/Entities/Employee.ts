@@ -11,6 +11,7 @@ import {
   IsString,
   Length,
   Matches,
+  ValidateIf,
   ValidateNested
 } from 'class-validator'
 import {
@@ -138,24 +139,24 @@ export default class Employee {
   unitSalary!: number
 
   // TODO: onetoone
-  @Column()
+  @Column({ nullable: true })
   @IsOptional()
   @IsNumber({ allowNaN: false })
   taskWisePayment?: number
 
-  @Column()
+  @Column({ nullable: true })
   @IsOptional()
   @IsNumber({ allowNaN: false })
   wordLimit?: number
 
   @Column({ type: 'time' })
-  @Matches(/^(?:1[0-2]|0?[1-9]):(?:[0-5]?[0-9])(?::(?:[0-5]?[0-9]))?$/, {
+  @Matches(/^(?:2[0-3]|[0-1][1-9]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
   officeStartTime!: string
 
   @Column({ type: 'time' })
-  @Matches(/^(?:1[0-2]|0?[1-9]):(?:[0-5]?[0-9])(?::(?:[0-5]?[0-9]))?$/, {
+  @Matches(/^(?:2[0-3]|[0-1][1-9]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
   @IsAfterTime('officeStartTime', {
@@ -171,9 +172,15 @@ export default class Employee {
   @IsIn(Employee.APPLICABILITY)
   overtime!: (typeof Employee.APPLICABILITY)[number]
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   @IsOptional()
   @IsDateString()
+  @ValidateIf(
+    (obj: Employee) =>
+      obj.noticePeriod !== null &&
+      typeof obj.noticePeriod !== 'undefined' &&
+      obj.noticePeriod !== ''
+  )
   noticePeriod?: string
 
   @Column({ type: 'enum', enum: Employee.APPLICABILITY })
