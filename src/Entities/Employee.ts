@@ -1,5 +1,6 @@
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsDate,
   IsDateString,
   IsEmail,
@@ -19,15 +20,22 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
-  Relation
+  type Relation
 } from 'typeorm'
 
+import { IsAfterTime } from '../utils/misc'
 import Branch from './Branch'
 import Company from './Company'
 import Department from './Department'
 import Designation from './Designation'
 import DutyType from './DutyType'
+import EmployeeAsset from './EmployeeAsset'
+import EmployeeContact from './EmployeeContacts'
+import EmployeeFinancial from './EmployeeFinancial'
+import EmployeeLeave from './EmployeeLeaves'
+import EmployeeAttendance from './ExployeeAttendance'
 import SalaryType from './SalaryType'
 
 @Entity()
@@ -81,48 +89,39 @@ export default class Employee {
   @IsString()
   photo?: string
 
-  @ManyToOne(() => Company, company => company.employees, {
-    cascade: true,
-    nullable: false
-  })
+  @ManyToOne(_type => Company, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => Company)
   company!: Company
 
-  @ManyToOne(() => Department, { cascade: true, nullable: false })
+  @ManyToOne(() => Department, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => Department)
   department!: Department
 
-  @ManyToOne(() => Branch, { nullable: false })
+  @ManyToOne(_type => Branch, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => Branch)
   branch!: Branch
 
-  @ManyToOne(() => Designation, { nullable: false })
+  @ManyToOne(_type => Designation, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => Designation)
   designation!: Designation
 
-  @ManyToOne(() => DutyType, { nullable: false })
+  @ManyToOne(_type => DutyType, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => DutyType)
   dutyType!: DutyType
 
-  @ManyToOne(() => SalaryType, { nullable: false })
+  @ManyToOne(_type => SalaryType, { nullable: false })
   @JoinColumn()
   @IsNotEmpty()
-  @ValidateNested()
   @Type(_ => SalaryType)
   salaryType!: Relation<SalaryType> // TODO:
 
@@ -131,28 +130,35 @@ export default class Employee {
   @IsDateString()
   dateOfJoining!: string
 
+  // TODO: onetomany salaries
   @Column()
   // @Transform(({ value }) => parseInt(value))
   @IsNumber()
   unitSalary!: number
 
+  // TODO: onetoone
   @Column()
+  @IsOptional()
   @IsNumber({ allowNaN: false })
   taskWisePayment?: number
 
   @Column()
+  @IsOptional()
   @IsNumber({ allowNaN: false })
   wordLimit?: number
 
   @Column({ type: 'time' })
-  @Matches(/^(1[0-2]|0?[1-9]):([0-5]?[0-9]):([0-5]?[0-9])$/, {
-    message: 'Office Start Time must match HH:MM:SS format'
+  @Matches(/^(?:1[0-2]|0?[1-9]):(?:[0-5]?[0-9])(?::(?:[0-5]?[0-9]))?$/, {
+    message: 'Office Start Time must match HH:MM[:SS] format'
   })
   officeStartTime!: string
 
   @Column({ type: 'time' })
-  @Matches(/^(1[0-2]|0?[1-9]):([0-5]?[0-9]):([0-5]?[0-9])$/, {
-    message: 'Office Start Time must match HH:MM:SS format'
+  @Matches(/^(?:1[0-2]|0?[1-9]):(?:[0-5]?[0-9])(?::(?:[0-5]?[0-9]))?$/, {
+    message: 'Office Start Time must match HH:MM[:SS] format'
+  })
+  @IsAfterTime('officeStartTime', {
+    message: 'Office Start Time Cannot Be Less Than Office End Time'
   })
   officeEndTime!: string
 
@@ -185,28 +191,45 @@ export default class Employee {
   @IsDate()
   createdDate!: Date
 
-  // static getAbsentEmployeesAtDate = (date: string) =>
-  //   AppDataSource.manager.query(
-  //     /*sql*/ `
-  //     SELECT
-  //       employee.id,
-  //       employee.employeeName,
-  //       employee.photo,
-  //       d.designationName,
-  //       c.companyName
-  //     FROM employee
-  //     INNER JOIN designation AS d
-  //       ON d.id = employee.designationId
-  //     INNER JOIN company AS c
-  //       ON c.id = employee.companyId
-  //     LEFT JOIN attendances AS a
-  //       ON employee.employeeId = a.employee_id_
-  //         AND a.date = ?
-  //     WHERE
-  //       employee.status = 'active'
-  //       AND employee.dateOfJoining <= ?
-  //       AND a.employee_id_ IS NULL
-  // `,
-  //     [date, date]
-  //   )
+  @OneToMany(_type => EmployeeAsset, asset => asset.employee, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
+  @IsArray()
+  @ValidateNested()
+  @Type(_ => EmployeeAsset)
+  assets!: EmployeeAsset[]
+
+  @OneToMany(_type => EmployeeFinancial, financial => financial.employee, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
+  @IsArray()
+  @ValidateNested()
+  @Type(_ => EmployeeFinancial)
+  financials!: EmployeeFinancial[]
+
+  @OneToMany(_type => EmployeeContact, contact => contact.employee, {
+    cascade: true,
+    nullable: false
+  })
+  @JoinColumn()
+  @IsArray()
+  @ValidateNested()
+  @Type(_ => EmployeeContact)
+  contacts!: EmployeeContact[]
+
+  @OneToMany(_type => EmployeeLeave, leave => leave.employee, {
+    nullable: false
+  })
+  @JoinColumn()
+  leaves!: EmployeeLeave[]
+
+  @OneToMany(_type => EmployeeAttendance, attendance => attendance.employee, {
+    nullable: false
+  })
+  @JoinColumn()
+  attendances!: EmployeeAttendance[]
 }

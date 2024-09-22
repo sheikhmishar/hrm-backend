@@ -18,11 +18,7 @@ export const allCompanies: RequestHandler<{}, Company[]> = async (
   next
 ) => {
   try {
-    res.json(
-      await AppDataSource.getRepository(Company).find({
-        relations: { employees: true }
-      })
-    )
+    res.json(await AppDataSource.getRepository(Company).find())
   } catch (err) {
     next(err)
   }
@@ -36,8 +32,7 @@ export const companyDetails: RequestHandler<
     const { id } = await transformAndValidate(IdParams, req.params)
 
     const company = await AppDataSource.getRepository(Company).findOne({
-      where: { id },
-      relations: { employees: true }
+      where: { id }
     })
     if (!company)
       throw new ResponseError(`No Company with ID: ${id}`, NOT_FOUND)

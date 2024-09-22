@@ -34,58 +34,58 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`designationId\` int NOT NULL,
                 \`dutyTypeId\` int NOT NULL,
                 \`salaryTypeId\` int NOT NULL,
-                UNIQUE INDEX \`IDX_b5817fccb63ba0b5551eeaa854\` (\`eId\`),
+                UNIQUE INDEX \`employee_unique_eid\` (\`eId\`),
                 PRIMARY KEY (\`id\`)
             ) ENGINE = InnoDB
         `);
         // TODO: foreign key constraint names should be better
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_26c3d513e0832e5abbbdd3d2a88\` FOREIGN KEY (\`companyId\`) REFERENCES \`company\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_company\` FOREIGN KEY (\`companyId\`) REFERENCES \`company\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_9ad20e4029f9458b6eed0b0c454\` FOREIGN KEY (\`departmentId\`) REFERENCES \`department\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_department\` FOREIGN KEY (\`departmentId\`) REFERENCES \`department\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_c36b6dc182259c56ee8c1cfecb3\` FOREIGN KEY (\`branchId\`) REFERENCES \`branch\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_branch\` FOREIGN KEY (\`branchId\`) REFERENCES \`branch\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_e41e10c17872cdf2f511e5d0097\` FOREIGN KEY (\`designationId\`) REFERENCES \`designation\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_designation\` FOREIGN KEY (\`designationId\`) REFERENCES \`designation\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_6f62fae90c6103d84dc6ddf6141\` FOREIGN KEY (\`dutyTypeId\`) REFERENCES \`duty_type\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_duty_type\` FOREIGN KEY (\`dutyTypeId\`) REFERENCES \`duty_type\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            ADD CONSTRAINT \`FK_1d63c8a9288d42747b5c5e20f7e\` FOREIGN KEY (\`salaryTypeId\`) REFERENCES \`salary_type\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+            ADD CONSTRAINT \`employee_salary_type\` FOREIGN KEY (\`salaryTypeId\`) REFERENCES \`salary_type\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_1d63c8a9288d42747b5c5e20f7e\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_salary_type\`
         `);
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_6f62fae90c6103d84dc6ddf6141\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_duty_type\`
         `);
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_e41e10c17872cdf2f511e5d0097\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_designation\`
         `);
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_c36b6dc182259c56ee8c1cfecb3\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_branch\`
         `);
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_9ad20e4029f9458b6eed0b0c454\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_department\`
         `);
         await queryRunner.query(`
-            ALTER TABLE \`employee\` DROP FOREIGN KEY \`FK_26c3d513e0832e5abbbdd3d2a88\`
+            ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_company\`
         `);
         await queryRunner.query(`
-            DROP INDEX \`IDX_b5817fccb63ba0b5551eeaa854\` ON \`employee\`
+            DROP INDEX \`employee_unique_eid\` ON \`employee\`
         `);
         await queryRunner.query(`
             DROP TABLE \`employee\`

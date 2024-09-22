@@ -151,24 +151,37 @@ Content-Type: application/json
   "unitSalary": 0,
   "taskWisePayment": 0,
   "wordLimit": 0,
-  "officeEndTime": "11:00:00",
-  "officeStartTime": "06:00:00",
+  "officeStartTime": "06:00",
+  "officeEndTime": "11:00:12",
   "checkedInLateFee": "inApplicable",
   "overtime": "inApplicable",
   "noticePeriod": "2029-01-01",
   "extraBonus": "inApplicable",
   "status": "active",
-  "createdDate": "1999-01-01"
+  "createdDate": "1999-01-01",
+  "assets": [
+    {
+      "name": "ss",
+      "description": "ss",
+      "givenDate": "2022-01-01",
+      "returnDate": "2024-01-01"
+    }
+  ],
+  "contacts": [],
+  "financials": []
 }
 
 ###
 GET {{api}}/employees
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
-GET {{api}}/employees/1
+GET {{api}}/employees/assets
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
-PUT {{api}}/employees/1
+GET {{api}}/employees/81
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+PUT {{api}}/employees/81
 Authorization: Bearer {{loginReq.response.body.$.token}}
 Content-Type: application/json
 
@@ -176,5 +189,50 @@ Content-Type: application/json
   "name":"test266@gmail.com",
   "status":"inactive",
   "logo":"ffgfg",
-  "email3":"test23@gmail.com"
+  "email3":"test23@gmail.com",
+  "branch": { "id":3, "name": "c" },
+  "assets": [
+    {
+      "name": "ssadasda",
+      "description": "ss",
+      "givenDate": "2022-01-01",
+      "returnDate": "2024-01-01"
+    },{
+      "name": "ssfsadsdsad",
+      "description": "ss",
+      "givenDate": "2022-01-01",
+      "returnDate": "2024-01-01"
+    },{
+      "name": "ssfsadsssdsad",
+      "description": "ss",
+      "givenDate": "2022-01-01",
+      "returnDate": "2024-01-01"
+    }
+  ]
 }
+
+
+###
+GET {{api}}/attendances
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+GET {{api}}/attendances/81
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+POST {{api}}/attendances
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+[
+  { "arrivalTime": "09:12:12", "leaveTime": "11:12:12", "date": "2024-02-15", "employee": {"id": 81} },
+  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 81} },
+  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-17", "employee": {"id": 81, "names": "ho"} }
+]
+###
+PUT {{api}}/attendances/12
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{ "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 81} }

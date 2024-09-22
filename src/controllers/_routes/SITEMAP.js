@@ -5,6 +5,7 @@ const root = '/api',
   staticRoot = '/static',
   usersRoot = `${root}/users`,
   employeesRoot = `${root}/employees`,
+  attendancesRoot = `${root}/attendances`,
   companiesRoot = `${root}/companies`,
   departmentsRoot = `${root}/departments`,
   branchesRoot = `${root}/branches`,
@@ -34,11 +35,19 @@ const SITEMAP = {
     _params: rootParams,
     _: employeesRoot,
     post: employeesRoot,
-    postBulk: `${employeesRoot}/bulk`,
+    postBulk: `${employeesRoot}/bulk`, // TODO:
     get: employeesRoot,
+    getAssets: `${employeesRoot}/assets`,
     getById: `${employeesRoot}/:id`,
-    getSalaryById: `${employeesRoot}/salaries/:id`,
     put: `${employeesRoot}/:id`
+  },
+  attendances: {
+    _params: { ...rootParams, employeeId: ':employeeId' },
+    _: attendancesRoot,
+    post: attendancesRoot,
+    get: attendancesRoot,
+    getByEmployeeId: `${attendancesRoot}/:employeeId`,
+    put: `${attendancesRoot}/:id`
   },
   companies: {
     _params: rootParams,

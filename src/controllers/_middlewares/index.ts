@@ -52,6 +52,7 @@ const expressErrorHandler: ErrorHandler = async (err: Error, _, res, __) => {
 
   const responseError = new ResponseError(err.message, err.status)
 
+  // TODO: array
   if (Array.isArray(err) && err[0] instanceof ValidationError) {
     responseError.status = UNPROCESSABLE_ENTITY
     responseError.message = (err as ValidationError[])

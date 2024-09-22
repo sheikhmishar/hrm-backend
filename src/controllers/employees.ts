@@ -17,17 +17,24 @@ export const allEmployees: RequestHandler<{}, Employee[]> = async (
   next
 ) => {
   try {
+    res.json(await AppDataSource.getRepository(Employee).find())
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const allEmployeeAssets: RequestHandler<{}, Employee[]> = async (
+  _,
+  res,
+  next
+) => {
+  try {
     res.json(
-      await AppDataSource.getRepository(Employee).find({
-        relations: {
-          company: true,
-          branch: true,
-          department: true,
-          designation: true,
-          dutyType: true,
-          salaryType: true
-        }
-      })
+      (
+        await AppDataSource.getRepository(Employee).find({
+          relations: { assets: true, financials: true, contacts: true }
+        })
+      ).filter(employee => employee.assets.length)
     )
   } catch (err) {
     next(err)
@@ -44,12 +51,12 @@ export const employeeDetails: RequestHandler<
     const employee = await AppDataSource.getRepository(Employee).findOne({
       where: { id },
       relations: {
-        company: true,
         branch: true,
-        department: true,
-        designation: true,
         dutyType: true,
-        salaryType: true
+        salaryType: true,
+        assets: true,
+        financials: true,
+        contacts: true
       }
     })
     if (!employee)
@@ -97,20 +104,23 @@ export const updateEmployee: RequestHandler<
     ).findOne({
       where: { id },
       relations: {
-        company: true,
         branch: true,
-        department: true,
-        designation: true,
         dutyType: true,
-        salaryType: true
+        salaryType: true,
+        assets: true,
+        financials: true,
+        contacts: true
       }
     })
     if (!previousEmployee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
+
     const employee = await transformAndValidate(Employee, {
       ...previousEmployee,
       ...req.body
     })
+
+    employee.id = id
     employee.branch.id = req.body.branch?.id || previousEmployee.branch.id
     employee.company.id = req.body.company?.id || previousEmployee.company.id
     employee.department.id =
@@ -121,16 +131,10 @@ export const updateEmployee: RequestHandler<
     employee.salaryType.id =
       req.body.salaryType?.id || previousEmployee.salaryType.id
 
-    const result = await AppDataSource.manager.update(
-      Employee,
-      { id },
-      employee
-    )
-    if (!result.affected)
-      throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
-
-    employee.id = id
-    res.json({ message: 'Employee updated', data: employee })
+    res.json({
+      message: 'Employee updated',
+      data: await AppDataSource.manager.save(Employee, employee)
+    })
   } catch (err) {
     next(err)
   }

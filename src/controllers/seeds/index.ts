@@ -73,8 +73,7 @@ const defaultSalaryType: SalaryType = { ...defaultDepartment }
 const defaultCompany: Company = {
   ...defaultDepartment,
   logo: '',
-  status: 'active',
-  employees: []
+  status: 'active'
 }
 
 type IdLessEntity<T extends { id: number }> = OmitKey<T, 'id'>
@@ -123,8 +122,7 @@ const seedCompanies = async (count: number) => {
       const company = await transformAndValidate(Company, {
         name: faker.random.words(),
         status: faker.random.arrayElement(Company.STATUSES),
-        logo: faker.image.business(50, 50),
-        employees: []
+        logo: faker.image.business(50, 50)
       } satisfies IdLessEntity<Company>)
 
       const dbResult = await AppDataSource.getRepository(Company).insert(
@@ -308,8 +306,8 @@ const seedEmployees = async (count: number) => {
         noticePeriod: faker.random.boolean()
           ? faker.date.future().toISOString().split('T')[0] || '2029-01-01'
           : undefined,
-        officeEndTime: '11:00',
-        officeStartTime: '06:00',
+        officeEndTime: '11:00:00',
+        officeStartTime: '06:00:00',
         checkedInLateFee: faker.random.arrayElement(Employee.APPLICABILITY),
         extraBonus: faker.random.arrayElement(Employee.APPLICABILITY),
         overtime: faker.random.arrayElement(Employee.APPLICABILITY),
@@ -325,7 +323,12 @@ const seedEmployees = async (count: number) => {
         department: defaultDepartment,
         designation: defaultDesignation,
         dutyType: defaultDutyType,
-        salaryType: defaultSalaryType
+        salaryType: defaultSalaryType,
+        assets: [],
+        financials: [],
+        contacts: [],
+        leaves: [],
+        attendances: []
       } satisfies IdLessEntity<Employee>)
       employee.company.id = faker.random.arrayElement(stat.companyIds)
       employee.branch.id = faker.random.arrayElement(stat.branchIds)

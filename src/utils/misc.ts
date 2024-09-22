@@ -20,3 +20,37 @@ export const capitalizeDelim = (value: string, delim = '_', replace = '_id_') =>
 
 export const pascalToSnakeCase = (pascalCaseString: string) =>
   pascalCaseString.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
+
+import {
+  ValidationArguments,
+  ValidationOptions,
+  registerDecorator
+} from 'class-validator'
+
+export function IsAfterTime<T extends { [k: string]: any }>(
+  property: keyof T,
+  validationOptions?: ValidationOptions
+) {
+  return function (object: T, propertyName: string) {
+    registerDecorator({
+      name: 'isAfterTime',
+      target: object.constructor,
+      propertyName,
+      constraints: [property],
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const [relatedPropertyName] = args.constraints
+          const relatedValue = (args.object as any)[relatedPropertyName]
+          const valueAsDate = new Date('2000-01-01T' + value)
+          const relatedValueAsDate = new Date('2000-01-01T' + relatedValue)
+          return (
+            !!valueAsDate.getTime() &&
+            !!relatedValueAsDate.getTime() &&
+            valueAsDate > relatedValueAsDate
+          )
+        }
+      }
+    })
+  }
+}
