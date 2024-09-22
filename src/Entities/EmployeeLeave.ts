@@ -66,6 +66,7 @@ export default class EmployeeLeave {
     onDelete: 'CASCADE',
     onUpdate: 'CASCADE'
   })
+  @IsNotEmpty()
   @Type(_ => Employee)
   employee!: Employee
 }

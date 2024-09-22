@@ -54,3 +54,6 @@ export function IsAfterTime<T extends { [k: string]: any }>(
     })
   }
 }
+
+export const BEGIN_DATE = '1900-01-01',
+  END_DATE = '2099-01-01'

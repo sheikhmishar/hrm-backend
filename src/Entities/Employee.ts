@@ -32,10 +32,11 @@ import Department from './Department'
 import Designation from './Designation'
 import DutyType from './DutyType'
 import EmployeeAsset from './EmployeeAsset'
+import EmployeeAttendance from './EmployeeAttendance'
 import EmployeeContact from './EmployeeContacts'
 import EmployeeFinancial from './EmployeeFinancial'
-import EmployeeLeave from './EmployeeLeaves'
-import EmployeeAttendance from './ExployeeAttendance'
+import EmployeeLeave from './EmployeeLeave'
+import EmployeeSalary from './EmployeeSalary'
 import SalaryType from './SalaryType'
 
 @Entity()
@@ -232,4 +233,10 @@ export default class Employee {
   })
   @JoinColumn()
   attendances!: EmployeeAttendance[]
+
+  @OneToMany(_type => EmployeeSalary, salary => salary.employee, {
+    nullable: false
+  })
+  @JoinColumn()
+  salaries!: EmployeeSalary[]
 }

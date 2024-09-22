@@ -40,6 +40,8 @@ const appendFile = async (str: string) =>
     )
   )
 
+// TODO: add remaining
+
 const stat = {
   userFails: 0,
   users: { admin: [], superAdmin: [] } as {
@@ -328,7 +330,8 @@ const seedEmployees = async (count: number) => {
         financials: [],
         contacts: [],
         leaves: [],
-        attendances: []
+        attendances: [],
+        salaries: []
       } satisfies IdLessEntity<Employee>)
       employee.company.id = faker.random.arrayElement(stat.companyIds)
       employee.branch.id = faker.random.arrayElement(stat.branchIds)

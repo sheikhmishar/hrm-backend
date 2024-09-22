@@ -6,7 +6,8 @@ import {
   addEmployeeAttendance,
   allEmployeeAttendances,
   employeeAttendanceDetails,
-  updateEmployeeAttendance
+  updateEmployeeAttendance,
+  deleteEmployeeAttendance
 } from '../../attendances'
 import { attendances as sitemap } from '../SITEMAP'
 
@@ -16,5 +17,6 @@ attendancesRouter.get(sitemap.get, allEmployeeAttendances)
 attendancesRouter.get(sitemap.getByEmployeeId, employeeAttendanceDetails)
 attendancesRouter.post(sitemap.post, addEmployeeAttendance)
 attendancesRouter.put(sitemap.put, updateEmployeeAttendance)
+attendancesRouter.delete(sitemap.put, deleteEmployeeAttendance)
 
 export default attendancesRouter

@@ -6,6 +6,8 @@ const root = '/api',
   usersRoot = `${root}/users`,
   employeesRoot = `${root}/employees`,
   attendancesRoot = `${root}/attendances`,
+  leavesRoot = `${root}/leaves`,
+  salariesRoot = `${root}/salaries`,
   companiesRoot = `${root}/companies`,
   departmentsRoot = `${root}/departments`,
   branchesRoot = `${root}/branches`,
@@ -43,11 +45,32 @@ const SITEMAP = {
   },
   attendances: {
     _params: { ...rootParams, employeeId: ':employeeId' },
+    _queries: { from: 'from', to: 'to' },
     _: attendancesRoot,
     post: attendancesRoot,
     get: attendancesRoot,
     getByEmployeeId: `${attendancesRoot}/:employeeId`,
-    put: `${attendancesRoot}/:id`
+    put: `${attendancesRoot}/:id`,
+    delete: `${attendancesRoot}/:id`
+  },
+  leaves: {
+    _params: { ...rootParams, employeeId: ':employeeId' },
+    _queries: { from: 'from', to: 'to' },
+    _: leavesRoot,
+    post: leavesRoot,
+    get: leavesRoot,
+    getByEmployeeId: `${leavesRoot}/:employeeId`,
+    delete: `${leavesRoot}/:id`
+  },
+  salaries: {
+    _params: { ...rootParams, employeeId: ':employeeId' },
+    _queries: { from: 'from', to: 'to' },
+    _: salariesRoot,
+    post: salariesRoot,
+    get: salariesRoot,
+    getByEmployeeId: `${salariesRoot}/:employeeId`,
+    put: `${salariesRoot}/:id`,
+    delete: `${salariesRoot}/:id`
   },
   companies: {
     _params: rootParams,

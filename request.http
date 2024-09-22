@@ -116,37 +116,12 @@ Content-Type: application/json
   "fullAddress": "test266@gmail.com",
   "gender": "Male",
   "photo": "",
-  "company": {
-    "id": 1,
-    "name": "Soap pixel Frozen",
-    "logo": "http://placeimg.com/50/50/business",
-    "status": "inactive"
-  },
-  "department": {
-    "id": 1,
-    "name": "tan Florida",
-    "status": "inactive"
-  },
-  "branch": {
-    "id": 1,
-    "name": "payment neural",
-    "status": "active"
-  },
-  "designation": {
-    "id": 1,
-    "name": "invoice",
-    "status": "active"
-  },
-  "dutyType": {
-    "id": 1,
-    "name": "Mobilitysdsd",
-    "status": "active"
-  },
-  "salaryType": {
-    "id": 1,
-    "name": "compressingdsdsdasd",
-    "status": "inactive"
-  },
+  "company": {"id": 1},
+  "department": {"id": 1},
+  "branch": {"id": 1},
+  "designation": {"id": 1},
+  "dutyType": {"id": 1},
+  "salaryType": {"id": 1},
   "dateOfJoining": "1999-01-01",
   "unitSalary": 0,
   "taskWisePayment": 0,
@@ -178,10 +153,10 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 GET {{api}}/employees/assets
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
-GET {{api}}/employees/81
+GET {{api}}/employees/75
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
-PUT {{api}}/employees/81
+PUT {{api}}/employees/75
 Authorization: Bearer {{loginReq.response.body.$.token}}
 Content-Type: application/json
 
@@ -213,11 +188,11 @@ Content-Type: application/json
 
 
 ###
-GET {{api}}/attendances
+GET {{api}}/attendances?from=2024-01-01&to=2048-01-01
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 ###
-GET {{api}}/attendances/81
+GET {{api}}/attendances/75?from=2024-01-01&to=2048-01-01
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 ###
@@ -226,13 +201,92 @@ Content-Type: application/json
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 [
-  { "arrivalTime": "09:12:12", "leaveTime": "11:12:12", "date": "2024-02-15", "employee": {"id": 81} },
-  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 81} },
-  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-17", "employee": {"id": 81, "names": "ho"} }
+  { "arrivalTime": "09:12:12", "leaveTime": "11:12:12", "date": "2024-02-15", "employee": {"id": 75} },
+  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 75} },
+  { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-17", "employee": {"id": 75, "names": "ho"} }
 ]
 ###
 PUT {{api}}/attendances/12
 Content-Type: application/json
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
-{ "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 81} }
+{ "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 75} }
+
+###
+DELETE {{api}}/attendances/12
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+
+
+###
+GET {{api}}/leaves?from=2011-01-01&to=2048-01-01
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+GET {{api}}/leaves/75?from=2024-02-16&to=2024-02-17
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+POST {{api}}/leaves?from=2023-12-15&to=2024-12-14
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{
+  "from": "2024-02-16",
+  "to": "2024-02-17",
+  "reason": "Chill",
+  "type": "paid",
+  "status": "pending",
+  "duration": "fullday",
+  "shift": "firstHalfDay",
+  "employee": {"id": 75}
+}
+###
+PUT {{api}}/leaves/12
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{ "shift": "secondHalfDay" }
+
+###
+DELETE {{api}}/leaves/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+
+
+###
+GET {{api}}/salaries?from=2011-01-01&to=2048-01-01
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+GET {{api}}/salaries/75?from=2024-02-16&to=2024-02-17
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+POST {{api}}/salaries?from=2023-12-15&to=2024-12-14
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{
+  "month": "2024-01-01",
+  "paidAt": "2024-01-14",
+  "overtime": 6,
+  "overtimePayment": 345,
+  "lateMinutes": 5,
+  "latePenalty": 14,
+  "bonus": 4,
+  "totalSalary": 3456,
+  "paymentMethod": "bKash",
+  "status": "paid",
+  "employee": {"id": 75}
+}
+###
+PUT {{api}}/salaries/1
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{ "status": "paid" }
+
+###
+DELETE {{api}}/salaries/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
