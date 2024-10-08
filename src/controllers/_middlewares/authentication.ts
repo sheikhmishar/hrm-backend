@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsIn,
   IsNumber,
   IsPositive,
   IsString,
@@ -33,7 +34,8 @@ export class AuthUser {
   @IsPositive()
   iat!: number
 
-  type: 'admin' | 'superAdmin' | undefined
+  @IsIn([...User.TYPES, undefined])
+  type!: (typeof User.TYPES)[number]
 }
 
 declare global {

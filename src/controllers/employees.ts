@@ -1,6 +1,8 @@
+import bcrypt from 'bcrypt'
 import type { RequestHandler } from 'express'
 
 import Employee from '../Entities/Employee'
+import User from '../Entities/User'
 import IdParams from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
@@ -17,7 +19,11 @@ export const allEmployees: RequestHandler<{}, Employee[]> = async (
   next
 ) => {
   try {
-    res.json(await AppDataSource.getRepository(Employee).find())
+    res.json(
+      await AppDataSource.getRepository(Employee).find({
+        order: { id: { direction: 'DESC' } }
+      })
+    )
   } catch (err) {
     next(err)
   }
@@ -69,11 +75,24 @@ export const employeeDetails: RequestHandler<
 
 export const addEmployee: RequestHandler<
   {},
-  { message: string; data: Employee },
+  { message: string; data: User },
   Partial<Employee>
 > = async (req, res, next) => {
+  const queryRunner = AppDataSource.createQueryRunner()
   try {
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
     const employee = await transformAndValidate(Employee, req.body)
+    const user = await transformAndValidate(User, {
+      id: -1,
+      email: employee.email,
+      name: employee.name,
+      password: await bcrypt.hash('DEFAULT_PASSWORD', 10),
+      phoneNumber: employee.phoneNumber,
+      type: 'Employee',
+      employee
+    } satisfies User)
     if (req.body.branch?.id) employee.branch.id = req.body.branch.id
     if (req.body.company?.id) employee.company.id = req.body.company.id
     if (req.body.department?.id) employee.department.id = req.body.department.id
@@ -82,12 +101,17 @@ export const addEmployee: RequestHandler<
     if (req.body.dutyType?.id) employee.dutyType.id = req.body.dutyType.id
     if (req.body.salaryType?.id) employee.salaryType.id = req.body.salaryType.id
 
-    await AppDataSource.manager.save(Employee, employee)
+    await queryRunner.manager.save(Employee, employee)
+    user.employee = employee
+    await queryRunner.manager.insert(User, user)
+
+    await queryRunner.commitTransaction()
 
     res
       .status(CREATED)
-      .json({ message: 'Successfully Created Employee', data: employee })
+      .json({ message: 'Successfully Created Employee', data: user })
   } catch (err) {
+    await queryRunner.rollbackTransaction()
     next(err)
   }
 }
@@ -97,21 +121,25 @@ export const updateEmployee: RequestHandler<
   { message: string; data: Employee },
   Partial<Employee>
 > = async (req, res, next) => {
+  const queryRunner = AppDataSource.createQueryRunner()
   try {
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
     const { id } = await transformAndValidate(IdParams, req.params)
-    const previousEmployee = await AppDataSource.getRepository(
-      Employee
-    ).findOne({
-      where: { id },
-      relations: {
-        branch: true,
-        dutyType: true,
-        salaryType: true,
-        assets: true,
-        financials: true,
-        contacts: true
-      }
-    })
+    const previousEmployee = await queryRunner.manager
+      .getRepository(Employee)
+      .findOne({
+        where: { id },
+        relations: {
+          branch: true,
+          dutyType: true,
+          salaryType: true,
+          assets: true,
+          financials: true,
+          contacts: true
+        }
+      })
     if (!previousEmployee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
 
@@ -119,7 +147,6 @@ export const updateEmployee: RequestHandler<
       ...previousEmployee,
       ...req.body
     })
-
     employee.id = id
     employee.branch.id = req.body.branch?.id || previousEmployee.branch.id
     employee.company.id = req.body.company?.id || previousEmployee.company.id
@@ -131,11 +158,30 @@ export const updateEmployee: RequestHandler<
     employee.salaryType.id =
       req.body.salaryType?.id || previousEmployee.salaryType.id
 
-    res.json({
-      message: 'Employee updated',
-      data: await AppDataSource.manager.save(Employee, employee)
+    const previousUser = await queryRunner.manager.getRepository(User).findOne({
+      where: { employee: { id } }
     })
+    const user = await transformAndValidate(User, {
+      email: employee.email,
+      name: employee.name,
+      phoneNumber: employee.phoneNumber,
+      password:
+        previousUser?.password || (await bcrypt.hash('DEFAULT_PASSWORD', 10)),
+      type: 'Employee',
+      employee
+    } as User)
+    user.employee = employee
+    if (previousUser) user.id = previousUser.id
+
+    await queryRunner.manager.save(Employee, employee)
+    await queryRunner.manager.save(User, user)
+
+    await queryRunner.commitTransaction()
+    res.json({ message: 'Employee updated', data: employee })
   } catch (err) {
+    await queryRunner.rollbackTransaction()
     next(err)
+  } finally {
+    await queryRunner.release()
   }
 }

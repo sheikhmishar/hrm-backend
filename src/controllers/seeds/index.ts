@@ -44,7 +44,7 @@ const appendFile = async (str: string) =>
 
 const stat = {
   userFails: 0,
-  users: { admin: [], superAdmin: [] } as {
+  users: { Employee: [], HR: [], SuperAdmin: [] } as {
     [type in (typeof User.TYPES)[number]]: number[]
   },
   companyIds: [] as number[],
@@ -291,6 +291,7 @@ const seedEmployees = async (count: number) => {
   for (let i = 1; i <= count - employees.length; i++) {
     const firstName = faker.name.firstName(),
       lastName = faker.name.lastName()
+    const basicSalary = faker.random.number()
     try {
       const employee = await transformAndValidate(Employee, {
         name: `${firstName} ${lastName}`,
@@ -304,7 +305,6 @@ const seedEmployees = async (count: number) => {
           faker.date.past().toISOString().split('T')[0] || '1999-01-01',
         dateOfJoining:
           faker.date.past().toISOString().split('T')[0] || '1999-01-01',
-        eId: faker.datatype.uuid(),
         noticePeriod: faker.random.boolean()
           ? faker.date.future().toISOString().split('T')[0] || '2029-01-01'
           : undefined,
@@ -313,7 +313,12 @@ const seedEmployees = async (count: number) => {
         checkedInLateFee: faker.random.arrayElement(Employee.APPLICABILITY),
         extraBonus: faker.random.arrayElement(Employee.APPLICABILITY),
         overtime: faker.random.arrayElement(Employee.APPLICABILITY),
-        unitSalary: faker.random.number(),
+        basicSalary,
+        conveyance: 0,
+        foodCost: 0,
+        houseRent: 0,
+        medicalCost: 0,
+        totalSalary: basicSalary,
         photo: '',
         taskWisePayment: faker.random.boolean()
           ? faker.random.number()

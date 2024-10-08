@@ -18,7 +18,6 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  Index,
   JoinColumn,
   ManyToOne,
   OneToMany,
@@ -45,14 +44,10 @@ export default class Employee {
   public static STATUSES = ['active', 'inactive'] as const
   public static APPLICABILITY = ['applicable', 'inApplicable'] as const
   public static GENDERS = ['Male', 'Female', 'Others'] as const
+  public static TYPES = ['SuperAdmin', 'Admin', 'Employee'] as const
 
   @PrimaryGeneratedColumn()
   id!: number
-
-  @Column()
-  @Index({ unique: true })
-  @IsNotEmpty()
-  eId!: string
 
   @Column()
   @Length(1, 20)
@@ -103,7 +98,7 @@ export default class Employee {
   @Type(_ => Department)
   department!: Department
 
-  @ManyToOne(_type => Branch, { nullable: false })
+  @ManyToOne(_type => Branch, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
   @Type(_ => Branch)
@@ -115,13 +110,13 @@ export default class Employee {
   @Type(_ => Designation)
   designation!: Designation
 
-  @ManyToOne(_type => DutyType, { nullable: false })
+  @ManyToOne(_type => DutyType, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
   @Type(_ => DutyType)
   dutyType!: DutyType
 
-  @ManyToOne(_type => SalaryType, { nullable: false })
+  @ManyToOne(_type => SalaryType, { nullable: false, eager: true })
   @JoinColumn()
   @IsNotEmpty()
   @Type(_ => SalaryType)
@@ -136,7 +131,34 @@ export default class Employee {
   @Column()
   // @Transform(({ value }) => parseInt(value))
   @IsNumber()
-  unitSalary!: number
+  @IsNotEmpty()
+  basicSalary!: number
+
+  @Column()
+  @IsNumber()
+  @IsNotEmpty()
+  houseRent!: number
+
+  @Column()
+  @IsNumber()
+  @IsNotEmpty()
+  foodCost!: number
+
+  @Column()
+  @IsNumber()
+  @IsNotEmpty()
+  conveyance!: number
+
+  @Column()
+  @IsNumber()
+  @IsNotEmpty()
+  medicalCost!: number
+
+  @Column()
+  @IsNumber()
+  @IsNotEmpty()
+  // TODO: auto calculate
+  totalSalary!: number
 
   // TODO: onetoone
   @Column({ nullable: true })
@@ -150,17 +172,18 @@ export default class Employee {
   wordLimit?: number
 
   @Column({ type: 'time' })
-  @Matches(/^(?:2[0-3]|[0-1][1-9]):[0-5][0-9](?::[0-5][0-9])?$/, {
+  @Matches(/^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
+  @IsString()
   officeStartTime!: string
 
   @Column({ type: 'time' })
-  @Matches(/^(?:2[0-3]|[0-1][1-9]):[0-5][0-9](?::[0-5][0-9])?$/, {
+  @Matches(/^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
   @IsAfterTime('officeStartTime', {
-    message: 'Office Start Time Cannot Be Less Than Office End Time'
+    message: 'Office End Time Cannot Be Less Than Office Start Time'
   })
   officeEndTime!: string
 
@@ -201,7 +224,8 @@ export default class Employee {
 
   @OneToMany(_type => EmployeeAsset, asset => asset.employee, {
     cascade: true,
-    nullable: false
+    nullable: false,
+    eager: true
   })
   @JoinColumn()
   @IsArray()
@@ -211,7 +235,8 @@ export default class Employee {
 
   @OneToMany(_type => EmployeeFinancial, financial => financial.employee, {
     cascade: true,
-    nullable: false
+    nullable: false,
+    eager: true
   })
   @JoinColumn()
   @IsArray()
@@ -221,7 +246,8 @@ export default class Employee {
 
   @OneToMany(_type => EmployeeContact, contact => contact.employee, {
     cascade: true,
-    nullable: false
+    nullable: false,
+    eager: true
   })
   @JoinColumn()
   @IsArray()

@@ -1,9 +1,24 @@
-import { IsEmail, IsIn, IsNotEmpty, IsString, Length } from 'class-validator'
-import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsString,
+  Length,
+} from 'class-validator'
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  OneToOne,
+  PrimaryGeneratedColumn
+} from 'typeorm'
+import Employee from './Employee'
+import { Type } from 'class-transformer'
 
 @Entity()
 export default class User {
-  public static TYPES = ['superAdmin', 'admin'] as const
+  public static TYPES = ['SuperAdmin', 'HR', 'Employee'] as const
 
   @PrimaryGeneratedColumn()
   id!: number
@@ -35,4 +50,15 @@ export default class User {
   })
   @IsIn([...User.TYPES, undefined])
   type!: (typeof User.TYPES)[number]
+
+  @OneToOne(_type => Employee, {
+    eager: true,
+    nullable: true,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+    orphanedRowAction: 'delete'
+  })
+  @JoinColumn()
+  @Type(_ => Employee)
+  employee?: Employee
 }

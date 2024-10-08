@@ -31,10 +31,25 @@ Content-Type: application/json
 }
 
 ###
+POST {{api}}/users/register
+Content-Type: application/json
+
+{
+  "name":"test3@gmail.com",
+  "email":"test3@gmail.com",
+  "phoneNumber":"test3@gmail.com",
+  "password":"test3@gmail.com",
+  "type": "SuperAdmin"
+}
+###
 GET {{api}}/users
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
 GET {{api}}/users/1
+Authorization: Bearer {{loginReq.response.body.$.token}}
+###
+# @name userReq
+GET {{api}}/users/25
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
 GET {{api}}/users/self
@@ -107,7 +122,6 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 Content-Type: application/json
 
 {
-  "eId": "{{$guid}}",
   "name": "test266@gmail.com",
   "phoneNumber": "test266@gmail.com",
   "altPhoneNumber": "test266@gmail.com",
@@ -123,7 +137,12 @@ Content-Type: application/json
   "dutyType": {"id": 1},
   "salaryType": {"id": 1},
   "dateOfJoining": "1999-01-01",
-  "unitSalary": 0,
+  "basicSalary": 0,
+  "houseRent": 0,
+  "foodCost": 0,
+  "conveyance": 0,
+  "medicalCost": 0,
+  "totalSalary": 0,
   "taskWisePayment": 0,
   "wordLimit": 0,
   "officeStartTime": "06:00",
@@ -152,7 +171,7 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 GET {{api}}/employees/assets
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
-GET {{api}}/employees/75
+GET {{api}}/employees/76
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
 PUT {{api}}/employees/75
