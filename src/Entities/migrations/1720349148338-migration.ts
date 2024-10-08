@@ -7,7 +7,6 @@ export class Migration1720349148338 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE \`employee\` (
                 \`id\` int NOT NULL AUTO_INCREMENT,
-                \`eId\` varchar(255) NOT NULL,
                 \`name\` varchar(255) NOT NULL,
                 \`phoneNumber\` varchar(255) NOT NULL,
                 \`altPhoneNumber\` varchar(255) NULL,
@@ -17,7 +16,12 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`gender\` enum ('Male', 'Female', 'Others') NOT NULL,
                 \`photo\` varchar(255) NULL,
                 \`dateOfJoining\` date NOT NULL,
-                \`unitSalary\` int NOT NULL,
+                \`basicSalary\` int NOT NULL,
+                \`houseRent\` int NOT NULL,
+                \`foodCost\` int NOT NULL,
+                \`conveyance\` int NOT NULL,
+                \`medicalCost\` int NOT NULL,
+                \`totalSalary\` int NOT NULL,
                 \`taskWisePayment\` int NULL,
                 \`wordLimit\` int NULL,
                 \`officeStartTime\` time NOT NULL,
@@ -34,7 +38,6 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`designationId\` int NOT NULL,
                 \`dutyTypeId\` int NOT NULL,
                 \`salaryTypeId\` int NOT NULL,
-                UNIQUE INDEX \`employee_unique_eid\` (\`eId\`),
                 PRIMARY KEY (\`id\`)
             ) ENGINE = InnoDB
         `);
@@ -83,9 +86,6 @@ export class Migration1720349148338 implements MigrationInterface {
         `);
         await queryRunner.query(`
             ALTER TABLE \`employee\` DROP FOREIGN KEY \`employee_company\`
-        `);
-        await queryRunner.query(`
-            DROP INDEX \`employee_unique_eid\` ON \`employee\`
         `);
         await queryRunner.query(`
             DROP TABLE \`employee\`

@@ -1,10 +1,16 @@
 import { Type } from 'class-transformer'
-import { IsDateString, IsNotEmpty, IsString, Matches } from 'class-validator'
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches
+} from 'class-validator'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import { IsAfterTime } from '../utils/misc'
-import Employee from './Employee'
 import Company from './Company'
+import Employee from './Employee'
 
 export type CompanyWiseCountByDate = Company & { presentEmployee: number }
 
@@ -25,9 +31,23 @@ export default class EmployeeAttendance {
   })
   public leaveTime!: string
 
+  @Column()
+  public late!: number
+
+  @Column()
+  public overtime!: number
+
+  @Column()
+  public totalTime!: number
+
   @Column({ type: 'date' })
   @IsDateString()
   public date!: string
+
+  @Column()
+  @IsOptional()
+  @IsString()
+  public tasks?: string
 
   @ManyToOne(_type => Employee, employee => employee.attendances, {
     nullable: false,

@@ -10,6 +10,10 @@ export class Migration1727015941698 implements MigrationInterface {
         \`arrivalTime\` time NOT NULL,
         \`leaveTime\` time NOT NULL,
         \`date\` date NOT NULL,
+        \`late\` int NOT NULL,
+        \`overtime\` int NOT NULL,
+        \`totalTime\` int NOT NULL,
+        \`tasks\` varchar(255) NULL,
         \`employeeId\` int NOT NULL,
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
@@ -33,7 +37,6 @@ export class Migration1727015941698 implements MigrationInterface {
         \`type\` enum ('paid', 'unpaid') NOT NULL DEFAULT 'paid',
         \`status\` enum ('pending', 'approved') NOT NULL DEFAULT 'pending',
         \`duration\` enum ('fullday', 'halfday') NOT NULL DEFAULT 'fullday',
-        \`shift\` enum ('firstHalfDay', 'secondHalfDay') NOT NULL DEFAULT 'firstHalfDay',
         \`employeeId\` int NOT NULL,
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
@@ -59,7 +62,7 @@ export class Migration1727015941698 implements MigrationInterface {
     )
 
     await queryRunner.query(
-      `ALTER TABLE \`employee_contact\` DROP FOREIGN KEY \`employee_contact\``
+      `ALTER TABLE \`employee_contact\` DROP FOREIGN KEY \`contact_employee\``
     )
     await queryRunner.query(
       `ALTER TABLE \`employee_attendance\` DROP FOREIGN KEY \`attendance_employee\``

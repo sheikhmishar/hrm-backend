@@ -10,6 +10,7 @@ const root = '/api',
   salariesRoot = `${root}/salaries`,
   companiesRoot = `${root}/companies`,
   departmentsRoot = `${root}/departments`,
+  settingsRoot = `${root}/settings`,
   branchesRoot = `${root}/branches`,
   dutyTypesRoot = `${root}/duty-types`,
   salaryTypesRoot = `${root}/salary-types`,
@@ -120,6 +121,13 @@ const SITEMAP = {
     get: designationsRoot,
     getById: `${designationsRoot}/:id`,
     put: `${designationsRoot}/:id`
+  },
+  settings: {
+    _params: { property: ':property' },
+    _: settingsRoot,
+    get: settingsRoot,
+    getByProperty: `${settingsRoot}/:property`,
+    put: `${settingsRoot}/:property`
   }
 }
 

@@ -8,6 +8,7 @@ import Employee from '../Entities/Employee'
 import EmployeeAttendance, {
   type CompanyWiseCountByDate
 } from '../Entities/EmployeeAttendance'
+import Setting from '../Entities/Setting'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError, dbgErrOpt } from '../configs'
 import AppDataSource from '../configs/db'
@@ -22,6 +23,51 @@ import SITEMAP from './_routes/SITEMAP'
 const { CREATED, NOT_FOUND } = statusCodes
 const { _params, _queries } = SITEMAP.attendances
 
+function modifyAttendance(
+  employee: Employee,
+  attendance: EmployeeAttendance,
+  settings: Setting[]
+) {
+  let late =
+    employee.checkedInLateFee === 'applicable'
+      ? Math.ceil(
+          (new Date('2021-01-01T' + attendance.arrivalTime).getTime() -
+            new Date('2021-01-01T' + employee.officeStartTime).getTime()) /
+            60000
+        )
+      : -1
+  let overtime =
+    employee.overtime === 'applicable'
+      ? Math.ceil(
+          (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
+            new Date('2021-01-01T' + employee.officeEndTime).getTime()) /
+            60000
+        )
+      : -1
+
+  const lateGracePeriod = parseInt(
+    settings.find(
+      setting => setting.property === 'ATTENDANCE_ENTRY_GRACE_PERIOD'
+    )?.value || '0m'
+  )
+  const overtimeGracePeriod = parseInt(
+    settings.find(
+      setting => setting.property === 'ATTENDANCE_LEAVE_GRACE_PERIOD'
+    )?.value || '0m'
+  )
+  if (late !== -1 && late <= lateGracePeriod) late = 0
+  if (overtime !== -1 && overtime <= overtimeGracePeriod) overtime = 0
+  attendance.totalTime = Math.ceil(
+    (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
+      new Date('2021-01-01T' + attendance.arrivalTime).getTime()) /
+      60000
+  )
+  attendance.late = late
+  attendance.overtime = overtime
+
+  return attendance
+}
+
 // TODO: find late and overtime
 export const allEmployeeAttendances: RequestHandler<
   {},
@@ -30,18 +76,26 @@ export const allEmployeeAttendances: RequestHandler<
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
+    const settings = await AppDataSource.getRepository(Setting).find()
     res.json(
-      await AppDataSource.getRepository(Employee).find({
-        where: {
-          attendances: {
-            date: And(
-              MoreThanOrEqual(req.query.from || BEGIN_DATE),
-              LessThanOrEqual(req.query.to || END_DATE)
-            )
-          }
-        },
-        relations: { attendances: true }
-      })
+      (
+        await AppDataSource.getRepository(Employee).find({
+          where: {
+            attendances: {
+              date: And(
+                MoreThanOrEqual(req.query.from || BEGIN_DATE),
+                LessThanOrEqual(req.query.to || END_DATE)
+              )
+            }
+          },
+          relations: { attendances: true }
+        })
+      ).map(employee => ({
+        ...employee,
+        attendances: employee.attendances.map(attendance =>
+          modifyAttendance(employee, attendance, settings)
+        )
+      }))
     )
   } catch (err) {
     next(err)
@@ -82,6 +136,7 @@ export const employeeAttendanceDetails: RequestHandler<
       EmployeeIdParams,
       req.params
     )
+    const settings = await AppDataSource.getRepository(Setting).find()
 
     const employeeAttendance = await AppDataSource.getRepository(
       Employee
@@ -99,6 +154,11 @@ export const employeeAttendanceDetails: RequestHandler<
     })
     if (!employeeAttendance)
       throw new ResponseError('No Employee with criteria', NOT_FOUND)
+
+    employeeAttendance.attendances = employeeAttendance.attendances.map(
+      attendance => modifyAttendance(employeeAttendance, attendance, settings)
+    )
+
     res.json(employeeAttendance)
   } catch (err) {
     next(err)
@@ -118,6 +178,7 @@ export const addEmployeeAttendance: RequestHandler<
       error.status = 422
       throw error
     }
+    const settings = await AppDataSource.manager.find(Setting)
     const data: { error?: string }[] = []
     for (let i = 0; i < req.body.length; i++) {
       try {
@@ -125,7 +186,6 @@ export const addEmployeeAttendance: RequestHandler<
           EmployeeAttendance,
           req.body[i]
         )
-        if (req.body[i]?.id) attendance.id = req.body[i]!.id
         if (req.body[i]?.employee.id)
           attendance.employee.id = req.body[i]!.employee.id
 
@@ -139,7 +199,14 @@ export const addEmployeeAttendance: RequestHandler<
           })
           continue
         }
-
+        const employee = await AppDataSource.manager.findOneBy(Employee, {
+          id: attendance.employee.id
+        })
+        if (!employee) {
+          data.push({ error: 'Invalid Employee' })
+          continue
+        }
+        modifyAttendance(employee, attendance, settings)
         await AppDataSource.manager.insert(EmployeeAttendance, attendance)
         data.push({})
       } catch (error) {

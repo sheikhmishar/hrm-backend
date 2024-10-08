@@ -9,7 +9,6 @@ export default class EmployeeLeave {
   public static TYPES = ['paid', 'unpaid'] as const
   public static STATUSES = ['pending', 'approved'] as const
   public static DURATIONS = ['fullday', 'halfday'] as const
-  public static SHIFTS = ['firstHalfDay', 'secondHalfDay'] as const
 
   @PrimaryGeneratedColumn()
   id!: number
@@ -22,6 +21,7 @@ export default class EmployeeLeave {
   @Column({ type: 'date' })
   @IsDateString()
   @IsNotEmpty()
+  // TODO: validate greater
   to!: string
 
   @Column()
@@ -35,7 +35,7 @@ export default class EmployeeLeave {
     default: EmployeeLeave.TYPES[0]
   })
   @IsIn(EmployeeLeave.TYPES)
-  type!: string
+  type!: typeof EmployeeLeave.TYPES[number]
 
   @Column({
     type: 'enum',
@@ -43,7 +43,7 @@ export default class EmployeeLeave {
     default: EmployeeLeave.STATUSES[0]
   })
   @IsIn(EmployeeLeave.STATUSES)
-  status!: string
+  status!: typeof EmployeeLeave.STATUSES[number]
 
   @Column({
     type: 'enum',
@@ -51,21 +51,17 @@ export default class EmployeeLeave {
     default: EmployeeLeave.DURATIONS[0]
   })
   @IsIn(EmployeeLeave.DURATIONS)
-  duration!: string
+  duration!: typeof EmployeeLeave.DURATIONS[number]
 
-  @Column({
-    type: 'enum',
-    enum: EmployeeLeave.SHIFTS,
-    default: EmployeeLeave.SHIFTS[0]
-  })
-  @IsIn(EmployeeLeave.SHIFTS)
-  shift!: string
-
-  @ManyToOne(_type => Employee, employee => employee.leaves, {
-    nullable: false,
-    onDelete: 'CASCADE',
-    onUpdate: 'CASCADE'
-  })
+  @ManyToOne(
+    _type => Employee,
+    employee => employee.leaves,
+    {
+      nullable: false,
+      onDelete: 'CASCADE',
+      onUpdate: 'CASCADE'
+    }
+  )
   @IsNotEmpty()
   @Type(_ => Employee)
   employee!: Employee
