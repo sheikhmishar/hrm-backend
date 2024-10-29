@@ -105,6 +105,10 @@ export const loginUser: RequestHandler<
           name: user.name,
           email: user.email,
           type: user.type,
+          employeeId:
+            user.type === 'Employee' && user.employee
+              ? user.employee.id
+              : undefined,
           iat: Date.now()
         } satisfies AuthUser,
         env.jwtKey || '',
