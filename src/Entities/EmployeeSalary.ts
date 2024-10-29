@@ -1,75 +1,58 @@
 import { Type } from 'class-transformer'
-import {
-  IsDateString,
-  IsIn,
-  IsNotEmpty,
-  IsNumber,
-  IsString
-} from 'class-validator'
+import { IsDate, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import Employee from './Employee'
 
 @Entity()
 export default class EmployeeSalary {
-  public static STATUSES = ['paid', 'unpaid'] as const
-
   @PrimaryGeneratedColumn()
   id!: number
 
-  @Column({ type: 'date' })
-  @IsDateString()
+  @Column({ type: 'datetime' })
+  @IsDate()
   @IsNotEmpty()
-  month!: string
-
-  @Column({ type: 'date' })
-  @IsDateString()
-  @IsNotEmpty()
-  paidAt!: string
-
-  @Column({ default: 0 })
-  @IsNumber()
-  @IsNotEmpty()
-  overtime!: number
-
-  @Column({ default: 0, type: 'decimal' })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsNotEmpty()
-  overtimePayment!: number
-
-  @Column({ default: 0 })
-  @IsNumber()
-  @IsNotEmpty()
-  lateMinutes!: number
-
-  @Column({ default: 0, type: 'decimal' })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsNotEmpty()
-  latePenalty!: number
-
-  @Column({ default: 0, type: 'decimal' })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsNotEmpty()
-  bonus!: number
-
-  // TODO: autocalculate
-  @Column({ default: 0, type: 'decimal' })
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @IsNotEmpty()
-  totalSalary!: number
+  changedAt!: Date
 
   @Column()
-  @IsString()
-  @IsNotEmpty()
-  paymentMethod!: string
+  @IsNumber()
+  @Min(0)
+  basicSalary!: number
 
-  @Column({
-    type: 'enum',
-    enum: EmployeeSalary.STATUSES,
-    default: EmployeeSalary.STATUSES[0]
-  })
-  @IsIn(EmployeeSalary.STATUSES)
-  status!: string
+  @Column()
+  @IsNumber()
+  @Min(0)
+  houseRent!: number
+
+  @Column()
+  @IsNumber()
+  @Min(0)
+  foodCost!: number
+
+  @Column()
+  @IsNumber()
+  @Min(0)
+  conveyance!: number
+
+  @Column()
+  @IsNumber()
+  @Min(0)
+  medicalCost!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  totalSalary!: number
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsNumber({ allowNaN: false })
+  taskWisePayment?: number
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsNumber({ allowNaN: false })
+  wordLimit?: number
 
   @ManyToOne(_type => Employee, employee => employee.salaries, {
     nullable: false,

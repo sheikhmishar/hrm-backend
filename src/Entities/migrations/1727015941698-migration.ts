@@ -33,6 +33,7 @@ export class Migration1727015941698 implements MigrationInterface {
         \`id\` int NOT NULL AUTO_INCREMENT,
         \`from\` date NOT NULL,
         \`to\` date NOT NULL,
+        \`totalDays\` decimal(3,1) NOT NULL,
         \`reason\` varchar(255) NOT NULL,
         \`type\` enum ('paid', 'unpaid') NOT NULL DEFAULT 'paid',
         \`status\` enum ('pending', 'approved') NOT NULL DEFAULT 'pending',

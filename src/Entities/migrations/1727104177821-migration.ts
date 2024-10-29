@@ -26,7 +26,7 @@ export class Migration1727104177821 implements MigrationInterface {
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      DROP FOREIGN KEY \`employee_user\` ON \`user\`
+      ALTER TABLE \`user\` DROP FOREIGN KEY \`employee_user\`
     `)
     await queryRunner.query(`
       DROP INDEX \`unique_employee_user\` ON \`user\`

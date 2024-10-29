@@ -2,6 +2,7 @@ import {
   IsEmail,
   IsIn,
   IsNumber,
+  IsOptional,
   IsPositive,
   IsString,
   Length
@@ -36,6 +37,11 @@ export class AuthUser {
 
   @IsIn([...User.TYPES, undefined])
   type!: (typeof User.TYPES)[number]
+
+  @IsOptional()
+  @IsNumber()
+  @IsPositive()
+  employeeId?: number
 }
 
 declare global {

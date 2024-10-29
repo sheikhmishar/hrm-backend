@@ -2,6 +2,7 @@ import { Type } from 'class-transformer'
 import {
   IsDateString,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
   Matches
@@ -32,19 +33,22 @@ export default class EmployeeAttendance {
   public leaveTime!: string
 
   @Column()
+  @IsNumber({ allowNaN: false })
   public late!: number
 
   @Column()
+  @IsNumber({ allowNaN: false })
   public overtime!: number
 
   @Column()
+  @IsNumber({ allowNaN: false })
   public totalTime!: number
 
   @Column({ type: 'date' })
   @IsDateString()
   public date!: string
 
-  @Column()
+  @Column({ nullable: true })
   @IsOptional()
   @IsString()
   public tasks?: string
