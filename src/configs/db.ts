@@ -1,5 +1,6 @@
 import path from 'path'
 import { DataSource } from 'typeorm'
+import { type ConnectionOptions } from 'mysql2'
 
 import env from './env'
 
@@ -15,7 +16,8 @@ const AppDataSource = new DataSource({
   migrations: [path.join(__dirname, '../Entities/migrations/**/*.{ts,js}')],
   synchronize: false,
   logging: !env.production,
-  debug: false
+  debug: false,
+  extra: { decimalNumbers: true } satisfies ConnectionOptions
 })
 
 export default AppDataSource
