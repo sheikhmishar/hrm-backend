@@ -1,5 +1,12 @@
 import { Type } from 'class-transformer'
-import { IsDateString, IsIn, IsNotEmpty, IsString } from 'class-validator'
+import {
+  IsDateString,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  Min
+} from 'class-validator'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import Employee from './Employee'
@@ -24,6 +31,11 @@ export default class EmployeeLeave {
   // TODO: validate greater
   to!: string
 
+  @Column({ type: 'decimal', precision: 3, scale: 1 })
+  @IsNumber({ maxDecimalPlaces: 1 })
+  @Min(0)
+  totalDays!: number
+
   @Column()
   @IsString()
   @IsNotEmpty()
@@ -35,7 +47,7 @@ export default class EmployeeLeave {
     default: EmployeeLeave.TYPES[0]
   })
   @IsIn(EmployeeLeave.TYPES)
-  type!: typeof EmployeeLeave.TYPES[number]
+  type!: (typeof EmployeeLeave.TYPES)[number]
 
   @Column({
     type: 'enum',
@@ -43,7 +55,7 @@ export default class EmployeeLeave {
     default: EmployeeLeave.STATUSES[0]
   })
   @IsIn(EmployeeLeave.STATUSES)
-  status!: typeof EmployeeLeave.STATUSES[number]
+  status!: (typeof EmployeeLeave.STATUSES)[number]
 
   @Column({
     type: 'enum',
@@ -51,17 +63,13 @@ export default class EmployeeLeave {
     default: EmployeeLeave.DURATIONS[0]
   })
   @IsIn(EmployeeLeave.DURATIONS)
-  duration!: typeof EmployeeLeave.DURATIONS[number]
+  duration!: (typeof EmployeeLeave.DURATIONS)[number]
 
-  @ManyToOne(
-    _type => Employee,
-    employee => employee.leaves,
-    {
-      nullable: false,
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE'
-    }
-  )
+  @ManyToOne(_type => Employee, employee => employee.leaves, {
+    nullable: false,
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE'
+  })
   @IsNotEmpty()
   @Type(_ => Employee)
   employee!: Employee
