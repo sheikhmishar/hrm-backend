@@ -55,8 +55,8 @@ function modifyAttendance(
       setting => setting.property === 'ATTENDANCE_LEAVE_GRACE_PERIOD'
     )?.value || '0m'
   )
-  if (late !== -1 && late <= lateGracePeriod) late = 0
-  if (overtime !== -1 && overtime <= overtimeGracePeriod) overtime = 0
+  if (late > -1 && late <= lateGracePeriod) late = 0
+  if (overtime > -1 && overtime <= overtimeGracePeriod) overtime = 0
   attendance.totalTime = Math.ceil(
     (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
       new Date('2021-01-01T' + attendance.arrivalTime).getTime()) /
@@ -76,26 +76,19 @@ export const allEmployeeAttendances: RequestHandler<
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
-    const settings = await AppDataSource.getRepository(Setting).find()
     res.json(
-      (
-        await AppDataSource.getRepository(Employee).find({
-          where: {
-            attendances: {
-              date: And(
-                MoreThanOrEqual(req.query.from || BEGIN_DATE),
-                LessThanOrEqual(req.query.to || END_DATE)
-              )
-            }
-          },
-          relations: { attendances: true }
-        })
-      ).map(employee => ({
-        ...employee,
-        attendances: employee.attendances.map(attendance =>
-          modifyAttendance(employee, attendance, settings)
-        )
-      }))
+      await AppDataSource.getRepository(Employee).find({
+        where: {
+          attendances: {
+            date: And(
+              MoreThanOrEqual(req.query.from || BEGIN_DATE),
+              LessThanOrEqual(req.query.to || END_DATE)
+            )
+            // TODO: or undefined
+          }
+        },
+        relations: { attendances: true }
+      })
     )
   } catch (err) {
     next(err)
@@ -136,7 +129,6 @@ export const employeeAttendanceDetails: RequestHandler<
       EmployeeIdParams,
       req.params
     )
-    const settings = await AppDataSource.getRepository(Setting).find()
 
     const employeeAttendance = await AppDataSource.getRepository(
       Employee
@@ -154,10 +146,6 @@ export const employeeAttendanceDetails: RequestHandler<
     })
     if (!employeeAttendance)
       throw new ResponseError('No Employee with criteria', NOT_FOUND)
-
-    employeeAttendance.attendances = employeeAttendance.attendances.map(
-      attendance => modifyAttendance(employeeAttendance, attendance, settings)
-    )
 
     res.json(employeeAttendance)
   } catch (err) {
