@@ -15,6 +15,7 @@ import salariesRouter from './salaries'
 import salaryTypesRouter from './salary-types'
 import settingsRouter from './settings'
 import usersRouter from './users'
+import monthlySalariesRouter from './monthly-salaries'
 
 const router = express.Router()
 
@@ -28,6 +29,7 @@ router.use(salariesRouter)
 router.use(branchesRouter)
 router.use(departmentsRouter)
 router.use(designationsRouter)
+router.use(monthlySalariesRouter)
 router.use(dutyTypesRouter)
 router.use(salaryTypesRouter)
 router.use(settingsRouter)
