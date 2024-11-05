@@ -1,19 +1,19 @@
 import type { RequestHandler } from 'express'
 
-import Employee from '../Entities/Employee'
 import { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
+import EmployeeSalary from '../Entities/EmployeeSalary'
 
 const { NOT_FOUND } = statusCodes
 const { _params } = SITEMAP.salaries
 
 export const employeeSalaryDetails: RequestHandler<
   Partial<typeof _params>,
-  Employee,
+  EmployeeSalary[],
   {}
 > = async (req, res, next) => {
   try {
@@ -22,13 +22,13 @@ export const employeeSalaryDetails: RequestHandler<
       req.params
     )
 
-    const employeeSalary = await AppDataSource.getRepository(Employee).findOne({
-      where: { id: employeeId },
-      relations: { salaries: true }
-    })
-    if (!employeeSalary)
-      throw new ResponseError('No Employee with criteria', NOT_FOUND)
-    res.json(employeeSalary)
+    const employeeSalaries = await AppDataSource.getRepository(
+      EmployeeSalary
+    ).find({ where: { employee: { id: employeeId } } })
+    if (!employeeSalaries.length)
+      throw new ResponseError('No Salary Found', NOT_FOUND)
+
+    res.json(employeeSalaries)
   } catch (err) {
     next(err)
   }

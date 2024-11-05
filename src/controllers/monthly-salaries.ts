@@ -35,6 +35,23 @@ export const allMonthlySalaries: RequestHandler<
   }
 }
 
+export const allSalariesByEmployee: RequestHandler<
+  Partial<typeof _params>,
+  MonthlySalary[],
+  {},
+  Partial<typeof _queries>
+> = async (req, res, next) => {
+  try {
+    res.json(
+      await AppDataSource.getRepository(MonthlySalary).findBy({
+        employee: { id: parseInt(req.params.id) || -1 }
+      })
+    )
+  } catch (err) {
+    next(err)
+  }
+}
+
 export const monthlySalaryDetails: RequestHandler<
   Partial<typeof _params>,
   MonthlySalary

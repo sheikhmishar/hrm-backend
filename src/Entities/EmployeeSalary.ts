@@ -1,8 +1,9 @@
 import { Type } from 'class-transformer'
 import { IsDate, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator'
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import Employee from './Employee'
+import Designation from './Designation'
 
 @Entity()
 export default class EmployeeSalary {
@@ -53,6 +54,12 @@ export default class EmployeeSalary {
   @IsOptional()
   @IsNumber({ allowNaN: false })
   wordLimit?: number
+
+  @ManyToOne(_type => Designation, { nullable: false, eager: true })
+  @JoinColumn()
+  @IsNotEmpty()
+  @Type(_ => Designation)
+  designation!: Designation
 
   @ManyToOne(_type => Employee, employee => employee.salaries, {
     nullable: false,

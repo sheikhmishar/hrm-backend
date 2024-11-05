@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt'
 import type { RequestHandler } from 'express'
 
 import Employee from '../Entities/Employee'
+import EmployeeSalary from '../Entities/EmployeeSalary'
 import User from '../Entities/User'
 import IdParams from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
@@ -36,11 +37,9 @@ export const allEmployeeAssets: RequestHandler<{}, Employee[]> = async (
 ) => {
   try {
     res.json(
-      (
-        await AppDataSource.getRepository(Employee).find({
-          relations: { assets: true, financials: true, contacts: true }
-        })
-      ).filter(employee => employee.assets.length)
+      (await AppDataSource.getRepository(Employee).find()).filter(
+        employee => employee.assets.length
+      )
     )
   } catch (err) {
     next(err)
@@ -56,14 +55,7 @@ export const employeeDetails: RequestHandler<
 
     const employee = await AppDataSource.getRepository(Employee).findOne({
       where: { id },
-      relations: {
-        branch: true,
-        dutyType: true,
-        salaryType: true,
-        assets: true,
-        financials: true,
-        contacts: true
-      }
+      relations: { branch: true }
     })
     if (!employee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
@@ -129,17 +121,7 @@ export const updateEmployee: RequestHandler<
     const { id } = await transformAndValidate(IdParams, req.params)
     const previousEmployee = await queryRunner.manager
       .getRepository(Employee)
-      .findOne({
-        where: { id },
-        relations: {
-          branch: true,
-          dutyType: true,
-          salaryType: true,
-          assets: true,
-          financials: true,
-          contacts: true
-        }
-      })
+      .findOne({ where: { id } })
     if (!previousEmployee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
 
@@ -175,6 +157,38 @@ export const updateEmployee: RequestHandler<
 
     await queryRunner.manager.save(Employee, employee)
     await queryRunner.manager.save(User, user)
+
+    if (
+      !(
+        [
+          'basicSalary',
+          'conveyance',
+          'foodCost',
+          'houseRent',
+          'medicalCost',
+          'taskWisePayment',
+          'totalSalary'
+        ] satisfies (keyof EmployeeSalary)[]
+      ).every(k => previousEmployee[k] === employee[k]) ||
+      previousEmployee.designation.id !== employee.designation.id
+    ) {
+      const salary = await transformAndValidate(EmployeeSalary, {
+        id: -1,
+        changedAt: new Date(),
+        basicSalary: employee.basicSalary,
+        conveyance: employee.conveyance,
+        foodCost: employee.foodCost,
+        houseRent: employee.houseRent,
+        medicalCost: employee.medicalCost,
+        totalSalary: employee.totalSalary,
+        taskWisePayment: employee.taskWisePayment,
+        wordLimit: employee.wordLimit,
+        designation: employee.designation,
+        employee
+      } satisfies EmployeeSalary)
+      salary.employee = employee
+      await queryRunner.manager.insert(EmployeeSalary, salary)
+    }
 
     await queryRunner.commitTransaction()
     res.json({ message: 'Employee updated', data: employee })

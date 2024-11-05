@@ -7,16 +7,16 @@ export class Migration1727027529425 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE \`employee_salary\` (
         \`id\` int NOT NULL AUTO_INCREMENT,
-        \`month\` date NOT NULL,
-        \`paidAt\` date NOT NULL,
-        \`overtime\` int NOT NULL DEFAULT '0',
-        \`overtimePayment\` decimal NOT NULL DEFAULT '0',
-        \`lateMinutes\` int NOT NULL DEFAULT '0',
-        \`latePenalty\` decimal NOT NULL DEFAULT '0',
-        \`bonus\` decimal NOT NULL DEFAULT '0',
-        \`totalSalary\` decimal NOT NULL DEFAULT '0',
-        \`paymentMethod\` varchar(255) NOT NULL,
-        \`status\` enum ('paid', 'unpaid') NOT NULL DEFAULT 'paid',
+        \`changedAt\` datetime NOT NULL,
+        \`basicSalary\` int NOT NULL,
+        \`houseRent\` int NOT NULL,
+        \`foodCost\` int NOT NULL,
+        \`conveyance\` int NOT NULL,
+        \`medicalCost\` int NOT NULL,
+        \`totalSalary\` decimal(9,2) NOT NULL,
+        \`taskWisePayment\` int NULL,
+        \`wordLimit\` int NULL,
+        \`designationId\` int NOT NULL,
         \`employeeId\` int NOT NULL,
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
@@ -25,9 +25,16 @@ export class Migration1727027529425 implements MigrationInterface {
       ALTER TABLE \`employee_salary\`
       ADD CONSTRAINT \`salary_employee\` FOREIGN KEY (\`employeeId\`) REFERENCES \`employee\`(\`id\`) ON DELETE CASCADE ON UPDATE CASCADE
     `)
+    await queryRunner.query(`
+        ALTER TABLE \`employee_salary\`
+        ADD CONSTRAINT \`salary_employee_designation\` FOREIGN KEY (\`designationId\`) REFERENCES \`designation\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
+    `);
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`
+        ALTER TABLE \`employee_salary\` DROP FOREIGN KEY \`salary_employee_designation\`
+    `);
     await queryRunner.query(
       `ALTER TABLE \`employee_salary\` DROP FOREIGN KEY \`salary_employee\``
     )
