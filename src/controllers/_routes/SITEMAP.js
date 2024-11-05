@@ -8,6 +8,7 @@ const root = '/api',
   attendancesRoot = `${root}/attendances`,
   leavesRoot = `${root}/leaves`,
   salariesRoot = `${root}/salaries`,
+  holidaysRoot = `${root}/holidays`,
   companiesRoot = `${root}/companies`,
   departmentsRoot = `${root}/departments`,
   monthlySalariesRoot = `${root}/monthly-salaries`,
@@ -76,10 +77,18 @@ const SITEMAP = {
     _: monthlySalariesRoot,
     post: monthlySalariesRoot,
     get: monthlySalariesRoot,
+    getAllByEmployeeId: `${monthlySalariesRoot}/employee/:id`,
     getById: `${monthlySalariesRoot}/:id`,
     put: `${monthlySalariesRoot}/:id`,
     putConfirm: `${monthlySalariesRoot}/confirm/:start_date`,
     delete: `${monthlySalariesRoot}/:start_date`
+  },
+  holidays: {
+    _params: { monthStart: ':monthStart', date: ':date' },
+    _: holidaysRoot,
+    getByMonthStart: `${holidaysRoot}/:monthStart`,
+    post: holidaysRoot,
+    delete: `${holidaysRoot}/:date`
   },
   companies: {
     _params: rootParams,

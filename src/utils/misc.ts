@@ -57,3 +57,37 @@ export function IsAfterTime<T extends { [k: string]: any }>(
 
 export const BEGIN_DATE = '1900-01-01',
   END_DATE = '2099-01-01'
+
+export const getPreviousMonth = (date: Date | string) => {
+  const newDate = new Date(date)
+  newDate.setMonth((newDate.getMonth() + 12 - 1) % 12)
+  newDate.setFullYear(
+    newDate.getMonth() === 11
+      ? newDate.getFullYear() - 1
+      : newDate.getFullYear()
+  )
+  return newDate
+}
+
+export const getNextMonth = (date: Date | string) => {
+  const newDate = new Date(date)
+  newDate.setMonth((newDate.getMonth() + 1) % 12)
+  newDate.setFullYear(
+    newDate.getMonth() === 0 ? newDate.getFullYear() + 1 : newDate.getFullYear()
+  )
+  return newDate
+}
+
+export const getDateRange = (date: Date | string) => {
+  let [from, to] = [new Date(date), new Date(date)]
+  if (from.getDate() < 15) {
+    from = getPreviousMonth(from)
+    from.setDate(15)
+    to.setDate(14)
+  } else {
+    from.setDate(15)
+    to = getNextMonth(to)
+    to.setDate(14)
+  }
+  return [from, to] as [Date, Date]
+}
