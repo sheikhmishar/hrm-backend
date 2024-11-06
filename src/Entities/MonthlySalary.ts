@@ -41,12 +41,12 @@ export default class MonthlySalary {
   overtime!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   overtimePayment!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   bonus!: number
 
@@ -56,12 +56,12 @@ export default class MonthlySalary {
   late!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   lateDeduction!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   penalty!: number
 
@@ -71,7 +71,7 @@ export default class MonthlySalary {
   leave!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   leaveDeduction!: number
 
@@ -101,7 +101,7 @@ export default class MonthlySalary {
   medicalCost!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
-  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsNumber()
   @Min(0)
   totalSalary!: number
 

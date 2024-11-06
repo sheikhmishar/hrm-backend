@@ -29,6 +29,7 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`checkedInLateFee\` enum ('applicable', 'inApplicable') NOT NULL,
                 \`overtime\` enum ('applicable', 'inApplicable') NOT NULL,
                 \`noticePeriod\` date NULL,
+                \`noticePeriodRemark\` varchar(255) NULL,
                 \`extraBonus\` enum ('applicable', 'inApplicable') NOT NULL,
                 \`status\` enum ('active', 'inactive') NOT NULL DEFAULT 'active',
                 \`createdDate\` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,

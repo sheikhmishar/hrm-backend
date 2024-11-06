@@ -32,7 +32,7 @@ export default class EmployeeLeave {
   to!: string
 
   @Column({ type: 'decimal', precision: 3, scale: 1 })
-  @IsNumber({ maxDecimalPlaces: 1 })
+  @IsNumber()
   @Min(0)
   totalDays!: number
 

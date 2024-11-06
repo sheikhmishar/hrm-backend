@@ -8,6 +8,8 @@ import Employee from '../Entities/Employee'
 import EmployeeAttendance, {
   type CompanyWiseCountByDate
 } from '../Entities/EmployeeAttendance'
+import EmployeeLeave from '../Entities/EmployeeLeave'
+import Holiday from '../Entities/Holiday'
 import Setting from '../Entities/Setting'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError, dbgErrOpt } from '../configs'
@@ -23,7 +25,7 @@ import SITEMAP from './_routes/SITEMAP'
 const { CREATED, NOT_FOUND } = statusCodes
 const { _params, _queries } = SITEMAP.attendances
 
-function modifyAttendance(
+async function modifyAttendance(
   employee: Employee,
   attendance: EmployeeAttendance,
   settings: Setting[]
@@ -36,13 +38,23 @@ function modifyAttendance(
             60000
         )
       : -1
+  attendance.totalTime = Math.ceil(
+    (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
+      new Date('2021-01-01T' + attendance.arrivalTime).getTime()) /
+      60000
+  )
+  const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
+    date: attendance.date
+  })
   let overtime =
     employee.overtime === 'applicable'
-      ? Math.ceil(
-          (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
-            new Date('2021-01-01T' + employee.officeEndTime).getTime()) /
-            60000
-        )
+      ? isHoliday
+        ? attendance.totalTime
+        : Math.ceil(
+            (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
+              new Date('2021-01-01T' + employee.officeEndTime).getTime()) /
+              60000
+          )
       : -1
 
   const lateGracePeriod = parseInt(
@@ -57,18 +69,13 @@ function modifyAttendance(
   )
   if (late > -1 && late <= lateGracePeriod) late = 0
   if (overtime > -1 && overtime <= overtimeGracePeriod) overtime = 0
-  attendance.totalTime = Math.ceil(
-    (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
-      new Date('2021-01-01T' + attendance.arrivalTime).getTime()) /
-      60000
-  )
+
   attendance.late = late
   attendance.overtime = overtime
 
   return attendance
 }
 
-// TODO: find late and overtime
 export const allEmployeeAttendances: RequestHandler<
   {},
   Employee[],
@@ -76,19 +83,31 @@ export const allEmployeeAttendances: RequestHandler<
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
+    const attendances = await AppDataSource.getRepository(
+      EmployeeAttendance
+    ).find({
+      where: {
+        date: And(
+          MoreThanOrEqual(req.query.from || BEGIN_DATE),
+          LessThanOrEqual(req.query.to || END_DATE)
+        ),
+        employee: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
+      },
+      relations: { employee: true } // TODO: remove
+    })
     res.json(
-      await AppDataSource.getRepository(Employee).find({
-        where: {
-          attendances: {
-            date: And(
-              MoreThanOrEqual(req.query.from || BEGIN_DATE),
-              LessThanOrEqual(req.query.to || END_DATE)
-            )
-            // TODO: or undefined
-          }
-        },
-        relations: { attendances: true }
-      })
+      (
+        await AppDataSource.getRepository(Employee).find({
+          order: { id: 'desc' },
+          where: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
+        })
+      ).map(employee =>
+        Object.assign(employee, {
+          attendances: attendances.filter(
+            ({ employee: { id } }) => employee.id === id
+          )
+        } satisfies Partial<Employee>)
+      )
     )
   } catch (err) {
     next(err)
@@ -177,7 +196,7 @@ export const addEmployeeAttendance: RequestHandler<
         if (req.body[i]?.employee.id)
           attendance.employee.id = req.body[i]!.employee.id
 
-        const alreadyExists = await AppDataSource.manager.existsBy(Employee, {
+        let alreadyExists = await AppDataSource.manager.existsBy(Employee, {
           id: attendance.employee.id,
           attendances: { date: attendance.date }
         })
@@ -187,6 +206,15 @@ export const addEmployeeAttendance: RequestHandler<
           })
           continue
         }
+        alreadyExists = await AppDataSource.manager.existsBy(EmployeeLeave, {
+          employee: { id: attendance.employee.id },
+          from: LessThanOrEqual(attendance.date),
+          to: MoreThanOrEqual(attendance.date)
+        })
+        if (alreadyExists) {
+          data.push({ error: 'Paid leave already exists at the same date' })
+          continue
+        }
         const employee = await AppDataSource.manager.findOneBy(Employee, {
           id: attendance.employee.id
         })
@@ -194,7 +222,7 @@ export const addEmployeeAttendance: RequestHandler<
           data.push({ error: 'Invalid Employee' })
           continue
         }
-        modifyAttendance(employee, attendance, settings)
+        await modifyAttendance(employee, attendance, settings)
         await AppDataSource.manager.insert(EmployeeAttendance, attendance)
         data.push({})
       } catch (error) {
