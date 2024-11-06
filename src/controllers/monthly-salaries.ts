@@ -6,6 +6,7 @@ import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 import Employee from '../Entities/Employee'
 import EmployeeAttendance from '../Entities/EmployeeAttendance'
 import EmployeeLeave from '../Entities/EmployeeLeave'
+import Holiday from '../Entities/Holiday'
 import MonthlySalary from '../Entities/MonthlySalary'
 import IdParams from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
@@ -100,37 +101,48 @@ export const generateMonthlySalary: RequestHandler<
       .find({
         where: {
           date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-          employee: { dateOfJoining: LessThanOrEqual(startDate) }
+          employee: { dateOfJoining: LessThanOrEqual(endDate) }
         },
         relations: { employee: true }
       })
 
-    const leaves = await queryRunner.manager.getRepository(EmployeeLeave).find({
-      where: [
-        {
-          from: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-          employee: { dateOfJoining: LessThanOrEqual(startDate) }
-        },
-        {
-          to: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-          employee: { dateOfJoining: LessThanOrEqual(startDate) }
-        }
-      ],
-      relations: { employee: true }
-    })
+    const paidLeaves = await queryRunner.manager
+      .getRepository(EmployeeLeave)
+      .find({
+        where: [
+          {
+            from: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
+            type: 'paid',
+            employee: { dateOfJoining: LessThanOrEqual(endDate) }
+          },
+          {
+            to: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
+            type: 'paid',
+            employee: { dateOfJoining: LessThanOrEqual(endDate) }
+          }
+        ],
+        relations: { employee: true }
+      })
 
     const employees = (
       await queryRunner.manager.getRepository(Employee).find({
-        where: { dateOfJoining: LessThanOrEqual(startDate) }
+        where: { dateOfJoining: LessThanOrEqual(endDate) },
+        order: { id: 'DESC' }
       })
     ).map(employee =>
       Object.assign(employee, {
         attendances: attendances.filter(
           ({ employee: { id } }) => employee.id === id
         ),
-        leaves: leaves.filter(({ employee: { id } }) => employee.id === id)
+        leaves: paidLeaves.filter(({ employee: { id } }) => employee.id === id)
       } satisfies Partial<Employee>)
     )
+
+    const holidayCount = await queryRunner.manager
+      .getRepository(Holiday)
+      .countBy({
+        date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate))
+      })
 
     await Promise.all(
       employees.map(async employee => {
@@ -144,10 +156,27 @@ export const generateMonthlySalary: RequestHandler<
           medicalCost,
           totalSalary
         } = employee
-        const totalLeaves = leaves.reduce(
-          (total, leave) => total + leave.totalDays,
+
+        const totalPaidLeaves = leaves.reduce(
+          (total, { totalDays }) => total + totalDays,
           0
         )
+        const totalDays =
+          Math.floor(
+            (new Date(endDate).getTime() - new Date(startDate).getTime()) /
+              (24 * 3600000)
+          ) + 1
+        const totalHolidayAttendances = attendances.reduce(
+          (total, { totalTime, overtime }) =>
+            total + (totalTime === overtime ? 1 : 0),
+          0
+        )
+        const totalLeaves =
+          totalDays -
+          holidayCount -
+          totalPaidLeaves -
+          (attendances.length - totalHolidayAttendances)
+
         const leaveDeduction = totalLeaves * 200
 
         const late = attendances
@@ -175,8 +204,10 @@ export const generateMonthlySalary: RequestHandler<
           overtime,
           overtimePayment,
           bonus: 0,
-          totalSalary:
-            totalSalary - lateDeduction - leaveDeduction + overtimePayment,
+          totalSalary: Math.max(
+            0,
+            totalSalary - lateDeduction - leaveDeduction + overtimePayment
+          ),
           paymentMethod: 'Cash',
           monthStartDate: startDate,
           status: 'Unpaid',
