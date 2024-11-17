@@ -9,6 +9,7 @@ import {
 } from 'class-validator'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
+import { IsAtOrAfterDate } from '../utils/misc'
 import Employee from './Employee'
 
 @Entity()
@@ -28,7 +29,7 @@ export default class EmployeeLeave {
   @Column({ type: 'date' })
   @IsDateString()
   @IsNotEmpty()
-  // TODO: validate greater
+  @IsAtOrAfterDate('from', { message: 'To Date Cannot Be Less Than From Date' })
   to!: string
 
   @Column({ type: 'decimal', precision: 3, scale: 1 })
