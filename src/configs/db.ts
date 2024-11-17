@@ -11,11 +11,11 @@ const AppDataSource = new DataSource({
   username: env.dbUser,
   password: env.dbPass,
   database: env.dbName,
-  timezone: '+00:00',
+  // timezone: '+48:00',
   entities: [path.join(__dirname, '../Entities/**/*.{ts,js}')],
   migrations: [path.join(__dirname, '../Entities/migrations/**/*.{ts,js}')],
   synchronize: false,
-  logging: !env.production,
+  logging: env.dbDebug === 'true',
   debug: false,
   extra: { decimalNumbers: true } satisfies ConnectionOptions
 })

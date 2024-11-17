@@ -76,6 +76,9 @@ export const addEmployee: RequestHandler<
     await queryRunner.startTransaction()
 
     const employee = await transformAndValidate(Employee, req.body)
+    if ((req.body as any).forceId === 'true')
+      employee.id = parseInt(req.body.id?.toString())
+
     const user = await transformAndValidate(User, {
       id: -1,
       email: employee.email,
@@ -105,6 +108,8 @@ export const addEmployee: RequestHandler<
   } catch (err) {
     await queryRunner.rollbackTransaction()
     next(err)
+  } finally {
+    await queryRunner.release()
   }
 }
 

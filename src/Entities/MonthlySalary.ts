@@ -103,6 +103,11 @@ export default class MonthlySalary {
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
+  loanDeduction!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
   totalSalary!: number
 
   @Column()

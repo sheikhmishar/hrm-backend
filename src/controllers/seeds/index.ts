@@ -320,6 +320,9 @@ const seedEmployees = async (count: number) => {
         medicalCost: 0,
         totalSalary: basicSalary,
         photo: '',
+        loanTaken: 0,
+        loanRemaining: 0,
+        noticePeriodRemark: '',
         taskWisePayment: faker.random.boolean()
           ? faker.random.number()
           : undefined,
@@ -336,7 +339,8 @@ const seedEmployees = async (count: number) => {
         contacts: [],
         leaves: [],
         attendances: [],
-        salaries: []
+        salaries: [],
+        loans: []
       } satisfies IdLessEntity<Employee>)
       employee.company.id = faker.random.arrayElement(stat.companyIds)
       employee.branch.id = faker.random.arrayElement(stat.branchIds)

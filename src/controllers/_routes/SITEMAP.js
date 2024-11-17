@@ -8,6 +8,7 @@ const root = '/api',
   attendancesRoot = `${root}/attendances`,
   leavesRoot = `${root}/leaves`,
   salariesRoot = `${root}/salaries`,
+  loansRoot = `${root}/loans`,
   holidaysRoot = `${root}/holidays`,
   companiesRoot = `${root}/companies`,
   departmentsRoot = `${root}/departments`,
@@ -22,6 +23,7 @@ const rootParams = { id: ':id' }
 
 const SITEMAP = {
   seed: !env.production ? `${root}/seed` : undefined,
+  seedEmployees: !env.production ? `${root}/seedEmployees` : undefined,
   static: {
     _: staticRoot,
     employeeDocuments: `${staticRoot}/${employeeDocumentDirName}`
@@ -40,7 +42,6 @@ const SITEMAP = {
     _params: rootParams,
     _: employeesRoot,
     post: employeesRoot,
-    postBulk: `${employeesRoot}/bulk`, // TODO:
     get: employeesRoot,
     getAssets: `${employeesRoot}/assets`,
     getById: `${employeesRoot}/:id`,
@@ -65,6 +66,14 @@ const SITEMAP = {
     get: leavesRoot,
     getByEmployeeId: `${leavesRoot}/:employeeId`,
     delete: `${leavesRoot}/:id`
+  },
+  loans: {
+    _params: { ...rootParams, employeeId: ':employeeId' },
+    _: loansRoot,
+    post: loansRoot,
+    get: loansRoot,
+    getByEmployeeId: `${loansRoot}/:employeeId`,
+    delete: `${loansRoot}/:id`
   },
   salaries: {
     _params: { ...rootParams, employeeId: ':employeeId' },

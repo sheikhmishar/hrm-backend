@@ -11,6 +11,7 @@ import {
   IsString,
   Length,
   Matches,
+  Min,
   ValidateIf,
   ValidateNested
 } from 'class-validator'
@@ -38,6 +39,7 @@ import EmployeeFinancial from './EmployeeFinancial'
 import EmployeeLeave from './EmployeeLeave'
 import EmployeeSalary from './EmployeeSalary'
 import SalaryType from './SalaryType'
+import Loan from './Loan'
 
 @Entity()
 export default class Employee {
@@ -50,12 +52,12 @@ export default class Employee {
   id!: number
 
   @Column()
-  @Length(1, 20)
+  @Length(1, 100)
   name!: string
 
-  @Column()
+  @Column({ length: 16 })
   @IsString()
-  @IsNotEmpty()
+  @Length(1, 16) // TODO: align with migration
   phoneNumber!: string
 
   @Column({ nullable: true })
@@ -127,40 +129,47 @@ export default class Employee {
   @IsDateString()
   dateOfJoining!: string
 
-  // TODO: onetomany salaries
-  @Column()
   // @Transform(({ value }) => parseInt(value))
+  @Column()
   @IsNumber()
-  @IsNotEmpty()
+  @Min(0)
   basicSalary!: number
 
   @Column()
   @IsNumber()
-  @IsNotEmpty()
+  @Min(0)
   houseRent!: number
 
   @Column()
   @IsNumber()
-  @IsNotEmpty()
+  @Min(0)
   foodCost!: number
 
   @Column()
   @IsNumber()
-  @IsNotEmpty()
+  @Min(0)
   conveyance!: number
 
   @Column()
   @IsNumber()
-  @IsNotEmpty()
+  @Min(0)
   medicalCost!: number
 
   @Column()
   @IsNumber()
-  @IsNotEmpty()
-  // TODO: auto calculate
+  @Min(0)
   totalSalary!: number
 
-  // TODO: onetoone
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
+  loanTaken!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
+  loanRemaining!: number
+
   @Column({ nullable: true })
   @IsOptional()
   @IsNumber({ allowNaN: false })
@@ -205,6 +214,17 @@ export default class Employee {
       obj.noticePeriod !== ''
   )
   noticePeriod?: string
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @ValidateIf(
+    (obj: Employee) =>
+      obj.noticePeriodRemark !== null &&
+      typeof obj.noticePeriodRemark !== 'undefined' &&
+      obj.noticePeriodRemark !== ''
+  )
+  noticePeriodRemark?: string
 
   @Column({ type: 'enum', enum: Employee.APPLICABILITY })
   @IsIn(Employee.APPLICABILITY)
@@ -259,7 +279,7 @@ export default class Employee {
     nullable: false
   })
   @JoinColumn()
-  leaves!: EmployeeLeave[]
+  leaves!: EmployeeLeave[] // TODO: non eager as ? optional
 
   @OneToMany(_type => EmployeeAttendance, attendance => attendance.employee, {
     nullable: false
@@ -272,4 +292,8 @@ export default class Employee {
   })
   @JoinColumn()
   salaries!: EmployeeSalary[]
+
+  @OneToMany(_type => Loan, loan => loan.employee, { nullable: false })
+  @JoinColumn()
+  loans!: Loan[]
 }

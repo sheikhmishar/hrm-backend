@@ -2,6 +2,7 @@ import express from 'express'
 
 import env from '../../../configs/env'
 import { seed } from '../../seeds'
+import { seedEmployees } from '../../seeds/employees'
 import SITEMAP from '../SITEMAP'
 import attendancesRouter from './attendances'
 import branchesRouter from './branches'
@@ -10,22 +11,27 @@ import departmentsRouter from './departments'
 import designationsRouter from './designations'
 import dutyTypesRouter from './duty-types'
 import employeesRouter from './employees'
+import holidaysRouter from './holidays'
 import leavesRouter from './leaves'
+import loansRouter from './loans'
+import monthlySalariesRouter from './monthly-salaries'
 import salariesRouter from './salaries'
 import salaryTypesRouter from './salary-types'
 import settingsRouter from './settings'
 import usersRouter from './users'
-import monthlySalariesRouter from './monthly-salaries'
-import holidaysRouter from './holidays'
 
 const router = express.Router()
 
-if (!env.production) router.get(SITEMAP.seed!, seed)
+if (!env.production) {
+  router.get(SITEMAP.seed!, seed)
+  router.get(SITEMAP.seedEmployees!, seedEmployees)
+}
 router.use(usersRouter)
 router.use(employeesRouter)
 router.use(companiesRouter)
 router.use(attendancesRouter)
 router.use(leavesRouter)
+router.use(loansRouter)
 router.use(holidaysRouter)
 router.use(salariesRouter)
 router.use(branchesRouter)

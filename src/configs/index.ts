@@ -11,7 +11,7 @@ import {
 import type { DebugOptions } from '../utils/debug'
 
 export const staticPath = path.join(__dirname, '../../static')
-export const employeeDocumentDirName = 'employee_documents' // TODO: omit
+export const employeeDocumentDirName = 'employee_documents'
 export const employeeDocumentsPath = path.join(
   staticPath,
   employeeDocumentDirName

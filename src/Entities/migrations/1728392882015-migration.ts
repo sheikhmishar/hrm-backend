@@ -22,6 +22,7 @@ export class Migration1728392882015 implements MigrationInterface {
         \`foodCost\` int NOT NULL,
         \`conveyance\` int NOT NULL,
         \`medicalCost\` int NOT NULL,
+        \`loanDeduction\` decimal(9,2) NOT NULL,
         \`totalSalary\` decimal(9,2) NOT NULL,
         \`paymentMethod\` varchar(255) NOT NULL,
         \`status\` enum ('Paid', 'Unpaid') NOT NULL DEFAULT 'Unpaid',

@@ -7,8 +7,8 @@ export class Migration1720349148338 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE \`employee\` (
                 \`id\` int NOT NULL AUTO_INCREMENT,
-                \`name\` varchar(255) NOT NULL,
-                \`phoneNumber\` varchar(255) NOT NULL,
+                \`name\` varchar(100) NOT NULL,
+                \`phoneNumber\` varchar(16) NOT NULL,
                 \`altPhoneNumber\` varchar(255) NULL,
                 \`email\` varchar(255) NOT NULL,
                 \`dateOfBirth\` date NOT NULL,
@@ -22,6 +22,8 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`conveyance\` int NOT NULL,
                 \`medicalCost\` int NOT NULL,
                 \`totalSalary\` int NOT NULL,
+                \`loanTaken\` decimal(9,2) NOT NULL,
+                \`loanRemaining\` decimal(9,2) NOT NULL,
                 \`taskWisePayment\` int NULL,
                 \`wordLimit\` int NULL,
                 \`officeStartTime\` time NOT NULL,
@@ -42,7 +44,6 @@ export class Migration1720349148338 implements MigrationInterface {
                 PRIMARY KEY (\`id\`)
             ) ENGINE = InnoDB
         `);
-        // TODO: foreign key constraint names should be better
         await queryRunner.query(`
             ALTER TABLE \`employee\`
             ADD CONSTRAINT \`employee_company\` FOREIGN KEY (\`companyId\`) REFERENCES \`company\`(\`id\`) ON DELETE NO ACTION ON UPDATE NO ACTION
