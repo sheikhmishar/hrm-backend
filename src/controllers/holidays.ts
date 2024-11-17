@@ -6,7 +6,7 @@ import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 import Holiday from '../Entities/Holiday'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
-import { getDateRange } from '../utils/misc'
+import { getDateRange, dateToString, stringToDate } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -27,8 +27,8 @@ export const holidaysByMonth: RequestHandler<
 > = async (req, res, next) => {
   try {
     const { monthStart } = await transformAndValidate(GetQuery, req.params)
-    const [startDate, endDate] = getDateRange(monthStart).map(date =>
-      date.toISOString().substring(0, 10)
+    const [startDate, endDate] = getDateRange(stringToDate(monthStart)).map(
+      dateToString
     ) as [string, string]
 
     const holidays = await AppDataSource.getRepository(Holiday).findBy({

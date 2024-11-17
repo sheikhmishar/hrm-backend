@@ -4,10 +4,9 @@ import type { QueryError } from 'mysql2'
 import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 import { snakeCase } from 'typeorm/util/StringUtils'
 
+import Company from '../Entities/Company'
 import Employee from '../Entities/Employee'
-import EmployeeAttendance, {
-  type CompanyWiseCountByDate
-} from '../Entities/EmployeeAttendance'
+import EmployeeAttendance from '../Entities/EmployeeAttendance'
 import EmployeeLeave from '../Entities/EmployeeLeave'
 import Holiday from '../Entities/Holiday'
 import Setting from '../Entities/Setting'
@@ -17,7 +16,12 @@ import AppDataSource from '../configs/db'
 import env from '../configs/env'
 import { foreignKeyError } from '../utils/dbHelpers'
 import { createDebug } from '../utils/debug'
-import { BEGIN_DATE, END_DATE, capitalizeDelim } from '../utils/misc'
+import {
+  BEGIN_DATE,
+  END_DATE,
+  capitalizeDelim,
+  timeToDate
+} from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -30,19 +34,15 @@ async function modifyAttendance(
   attendance: EmployeeAttendance,
   settings: Setting[]
 ) {
+  const arrivalTime = timeToDate(attendance.arrivalTime).getTime()
+  const leaveTime = timeToDate(attendance.leaveTime).getTime()
   let late =
     employee.checkedInLateFee === 'applicable'
       ? Math.ceil(
-          (new Date('2021-01-01T' + attendance.arrivalTime).getTime() -
-            new Date('2021-01-01T' + employee.officeStartTime).getTime()) /
-            60000
+          (arrivalTime - timeToDate(employee.officeStartTime).getTime()) / 60000
         )
       : -1
-  attendance.totalTime = Math.ceil(
-    (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
-      new Date('2021-01-01T' + attendance.arrivalTime).getTime()) /
-      60000
-  )
+  attendance.totalTime = Math.ceil((leaveTime - arrivalTime) / 60000)
   const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
     date: attendance.date
   })
@@ -51,9 +51,7 @@ async function modifyAttendance(
       ? isHoliday
         ? attendance.totalTime
         : Math.ceil(
-            (new Date('2021-01-01T' + attendance.leaveTime).getTime() -
-              new Date('2021-01-01T' + employee.officeEndTime).getTime()) /
-              60000
+            (leaveTime - timeToDate(employee.officeEndTime).getTime()) / 60000
           )
       : -1
 
@@ -83,30 +81,32 @@ export const allEmployeeAttendances: RequestHandler<
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
-    const attendances = await AppDataSource.getRepository(
-      EmployeeAttendance
-    ).find({
-      where: {
-        date: And(
-          MoreThanOrEqual(req.query.from || BEGIN_DATE),
-          LessThanOrEqual(req.query.to || END_DATE)
-        ),
-        employee: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
-      },
-      relations: { employee: true } // TODO: remove
-    })
+    const [attendances, employees] = await Promise.all([
+      AppDataSource.getRepository(EmployeeAttendance).find({
+        where: {
+          date: And(
+            MoreThanOrEqual(req.query.from || BEGIN_DATE),
+            LessThanOrEqual(req.query.to || END_DATE)
+          ),
+          employee: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
+        },
+        relations: { employee: true }
+      }),
+
+      AppDataSource.getRepository(Employee).find({
+        order: { id: 'desc' },
+        where: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
+      })
+    ])
+
     res.json(
-      (
-        await AppDataSource.getRepository(Employee).find({
-          order: { id: 'desc' },
-          where: { dateOfJoining: LessThanOrEqual(req.query.to || END_DATE) }
-        })
-      ).map(employee =>
-        Object.assign(employee, {
-          attendances: attendances.filter(
-            ({ employee: { id } }) => employee.id === id
-          )
-        } satisfies Partial<Employee>)
+      employees.map(
+        employee =>
+          Object.assign(employee, {
+            attendances: attendances.filter(
+              ({ employee: { id } }) => employee.id === id
+            )
+          } satisfies Partial<Employee>) as Employee
       )
     )
   } catch (err) {
@@ -116,21 +116,54 @@ export const allEmployeeAttendances: RequestHandler<
 
 export const companyWiseAttendance: RequestHandler<
   {},
-  CompanyWiseCountByDate[],
+  (Company & { employees: Employee[] })[],
   {},
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
+    const date = req.query.date || ''
+    const [companies, employees, attendances, paidLeaves] = await Promise.all([
+      AppDataSource.getRepository(Company).find(),
+
+      AppDataSource.getRepository(Employee).find({
+        order: { id: 'desc' },
+        where: { dateOfJoining: LessThanOrEqual(date) }
+      }),
+
+      AppDataSource.getRepository(EmployeeAttendance).find({
+        where: { date, employee: { dateOfJoining: LessThanOrEqual(date) } },
+        relations: { employee: true }
+      }),
+
+      AppDataSource.getRepository(EmployeeLeave).find({
+        where: {
+          from: LessThanOrEqual(date),
+          to: MoreThanOrEqual(date),
+          type: 'paid',
+          employee: { dateOfJoining: LessThanOrEqual(date) }
+        },
+        relations: { employee: true }
+      })
+    ])
+
     res.json(
-      (
-        (await AppDataSource.getRepository(Employee).query(
-          EmployeeAttendance.SQL_COMPANY_WISE_COUNT_BY_DATE,
-          [req.query.date]
-        )) as CompanyWiseCountByDate[]
-      ).map(data => ({
-        ...data,
-        presentEmployee: parseInt(data.presentEmployee.toString())
-      }))
+      companies.map(company =>
+        Object.assign(company, {
+          employees: employees
+            .filter(({ company: { id } }) => id === company.id)
+            .map(
+              employee =>
+                Object.assign(employee, {
+                  attendances: attendances.filter(
+                    ({ employee: { id } }) => id === employee.id
+                  ),
+                  leaves: paidLeaves.filter(
+                    ({ employee: { id } }) => id === employee.id
+                  )
+                } satisfies Partial<Employee>) as Employee
+            )
+        })
+      )
     )
   } catch (err) {
     next(err)
@@ -207,6 +240,7 @@ export const addEmployeeAttendance: RequestHandler<
           continue
         }
         alreadyExists = await AppDataSource.manager.existsBy(EmployeeLeave, {
+          type: 'paid',
           employee: { id: attendance.employee.id },
           from: LessThanOrEqual(attendance.date),
           to: MoreThanOrEqual(attendance.date)
@@ -222,6 +256,15 @@ export const addEmployeeAttendance: RequestHandler<
           data.push({ error: 'Invalid Employee' })
           continue
         }
+
+        const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
+          date: attendance.date
+        })
+        if (employee.overtime === 'inApplicable' && isHoliday) {
+          data.push({ error: 'Employee overtime not applicable at holiday' })
+          continue
+        }
+
         await modifyAttendance(employee, attendance, settings)
         await AppDataSource.manager.insert(EmployeeAttendance, attendance)
         data.push({})

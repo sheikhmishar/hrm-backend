@@ -6,7 +6,15 @@ import EmployeeLeave from '../Entities/EmployeeLeave'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
-import { BEGIN_DATE, END_DATE } from '../utils/misc'
+import {
+  BEGIN_DATE,
+  END_DATE,
+  getDateRange,
+  dateToString,
+  stringToDate,
+  getYearRange,
+  dayDifference
+} from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -117,40 +125,6 @@ export const employeeLeaveDetails: RequestHandler<
   }
 }
 
-const getPreviousMonth = (date: Date | string) => {
-  const newDate = new Date(date)
-  newDate.setMonth((newDate.getMonth() + 12 - 1) % 12)
-  newDate.setFullYear(
-    newDate.getMonth() === 11
-      ? newDate.getFullYear() - 1
-      : newDate.getFullYear()
-  )
-  return newDate
-}
-
-const getNextMonth = (date: Date | string) => {
-  const newDate = new Date(date)
-  newDate.setMonth((newDate.getMonth() + 1) % 12)
-  newDate.setFullYear(
-    newDate.getMonth() === 0 ? newDate.getFullYear() + 1 : newDate.getFullYear()
-  )
-  return newDate
-}
-
-const getDateRange = (date: Date | string) => {
-  let [from, to] = [new Date(date), new Date(date)]
-  if (from.getDate() < 15) {
-    from = getPreviousMonth(from)
-    from.setDate(15)
-    to.setDate(14)
-  } else {
-    from.setDate(15)
-    to = getNextMonth(to)
-    to.setDate(14)
-  }
-  return [from, to] as [Date, Date]
-}
-
 export const addEmployeeLeave: RequestHandler<
   {},
   { message: string; data: EmployeeLeave },
@@ -159,25 +133,17 @@ export const addEmployeeLeave: RequestHandler<
 > = async (req, res, next) => {
   try {
     const leave = await transformAndValidate(EmployeeLeave, req.body)
+    const leaveFrom = stringToDate(leave.from)
     leave.totalDays =
-      ((new Date(leave.to).getTime() - new Date(leave.from).getTime()) /
-        (3600000 * 24) +
-        1) *
+      dayDifference(leaveFrom, stringToDate(leave.to)) *
       (leave.duration === 'fullday' ? 1 : 0.5)
     if (req.body.employee?.id) leave.employee.id = req.body.employee.id
 
     if (leave.type === 'paid') {
-      const fromDate = new Date(leave.from)
-      const year = fromDate.getFullYear() // TODO: validate isNaN
-      const yearStart = `${year}-01-15`
-      const yearEnd = `${year + 1}-01-14`
+      const [yearStart, yearEnd] = getYearRange(leaveFrom)
 
-      // TODO: getYearRange
-      const [monthStart, monthEnd] = getDateRange(fromDate).map(
-        d =>
-          `${d.getFullYear()}-${(d.getMonth() + 1)
-            .toString()
-            .padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`
+      const [monthStart, monthEnd] = getDateRange(leaveFrom).map(
+        dateToString
       ) as [string, string]
 
       const employeePaidLeaveInMonth = (
@@ -259,9 +225,7 @@ export const deleteEmployeeLeave: RequestHandler<
     if (!result.affected)
       throw new ResponseError(`No Leave with ID: ${id}`, NOT_FOUND)
 
-    res.json({
-      message: `Successfully deleted Leave Entry with ID: ${id}`
-    })
+    res.json({ message: `Successfully deleted Leave Entry with ID: ${id}` })
   } catch (err) {
     next(err)
   }
