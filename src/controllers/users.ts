@@ -57,7 +57,12 @@ export const registerUser: RequestHandler<
   User
 > = async (req, res, next) => {
   try {
-    const user = await transformAndValidate(User, req.body)
+    const existsSuperAdmin = await AppDataSource.getRepository(User).existsBy({
+      type: 'SuperAdmin'
+    })
+    if (!existsSuperAdmin) req.body.type = 'SuperAdmin'
+
+    const user = await transformAndValidate(User, { ...req.body })
     user.password = await bcrypt.hash(user.password, 10)
 
     const result = await AppDataSource.getRepository(User).insert(user)
