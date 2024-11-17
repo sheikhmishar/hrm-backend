@@ -21,6 +21,14 @@ export const capitalizeDelim = (value: string, delim = '_', replace = '_id_') =>
 export const pascalToSnakeCase = (pascalCaseString: string) =>
   pascalCaseString.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
 
+export const timeToDate = (time: string) => new Date('2021-01-01T' + time)
+export const stringToDate = (str: string) => new Date(str.replace(/-/g, '/'))
+
+export const dateToString = (date: Date) =>
+  `${date.getFullYear()}-${(date.getMonth() + 1)
+    .toString()
+    .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+
 import {
   ValidationArguments,
   ValidationOptions,
@@ -42,13 +50,28 @@ export function IsAfterTime<T extends { [k: string]: any }>(
         validate(value: any, args: ValidationArguments) {
           const [relatedPropertyName] = args.constraints
           const relatedValue = (args.object as any)[relatedPropertyName]
-          const valueAsDate = new Date('2000-01-01T' + value)
-          const relatedValueAsDate = new Date('2000-01-01T' + relatedValue)
-          return (
-            !!valueAsDate.getTime() &&
-            !!relatedValueAsDate.getTime() &&
-            valueAsDate > relatedValueAsDate
-          )
+          return (value?.localeCompare?.(relatedValue) || 0) > 0
+        }
+      }
+    })
+  }
+}
+export function IsAtOrAfterDate<T extends { [k: string]: any }>(
+  property: keyof T,
+  validationOptions?: ValidationOptions
+) {
+  return function (object: T, propertyName: string) {
+    registerDecorator({
+      name: 'isAtOrAfterDate',
+      target: object.constructor,
+      propertyName,
+      constraints: [property],
+      options: validationOptions,
+      validator: {
+        validate(value: any, args: ValidationArguments) {
+          const [relatedPropertyName] = args.constraints
+          const relatedValue = (args.object as any)[relatedPropertyName]
+          return stringToDate(value) >= stringToDate(relatedValue)
         }
       }
     })
@@ -56,9 +79,9 @@ export function IsAfterTime<T extends { [k: string]: any }>(
 }
 
 export const BEGIN_DATE = '1900-01-01',
-  END_DATE = '2099-01-01'
+  END_DATE = '2299-01-01'
 
-export const getPreviousMonth = (date: Date | string) => {
+export const getPreviousMonth = (date: Date) => {
   const newDate = new Date(date)
   newDate.setMonth((newDate.getMonth() + 12 - 1) % 12)
   newDate.setFullYear(
@@ -69,7 +92,7 @@ export const getPreviousMonth = (date: Date | string) => {
   return newDate
 }
 
-export const getNextMonth = (date: Date | string) => {
+export const getNextMonth = (date: Date) => {
   const newDate = new Date(date)
   newDate.setMonth((newDate.getMonth() + 1) % 12)
   newDate.setFullYear(
@@ -78,7 +101,7 @@ export const getNextMonth = (date: Date | string) => {
   return newDate
 }
 
-export const getDateRange = (date: Date | string) => {
+export const getDateRange = (date: Date) => {
   let [from, to] = [new Date(date), new Date(date)]
   if (from.getDate() < 15) {
     from = getPreviousMonth(from)
@@ -89,5 +112,19 @@ export const getDateRange = (date: Date | string) => {
     to = getNextMonth(to)
     to.setDate(14)
   }
-  return [from, to] as [Date, Date]
+  return [from, to] as const
+}
+
+export const getYearRange = (date: Date) => {
+  const year = date.getFullYear()
+  return [`${year}-01-15`, `${year + 1}-01-14`] as const
+}
+
+export const dayDifference = (date1: Date, date2: Date, absolute = true) => {
+  let timestampDiff = date1.getTime() - date2.getTime()
+  if (absolute) timestampDiff = Math.abs(timestampDiff)
+  // dayjs(date1).diff(date2, 'dates')
+  return (
+    Math.floor(timestampDiff / (3600000 * 24)) + (timestampDiff < 0 ? -1 : 1)
+  )
 }
