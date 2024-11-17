@@ -11,6 +11,8 @@
 
 ###
 GET {{api}}/seed
+###
+GET {{api}}/seedEmployees
 
 ###
 ###
@@ -214,6 +216,10 @@ GET {{api}}/attendances/companywise?date=2024-02-16
 Authorization: Bearer {{loginReq.response.body.$.token}}
 ###
 GET {{api}}/attendances/75?from=2024-01-01&to=2048-01-01
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+GET {{api}}/attendances/companywise?date=2024-11-10
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 ###
