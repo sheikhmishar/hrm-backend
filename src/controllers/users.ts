@@ -60,7 +60,10 @@ export const registerUser: RequestHandler<
     const existsSuperAdmin = await AppDataSource.getRepository(User).existsBy({
       type: 'SuperAdmin'
     })
-    if (!existsSuperAdmin) req.body.type = 'SuperAdmin'
+    if (!existsSuperAdmin) {
+      req.body.type = 'SuperAdmin'
+      req.body.status = 'active'
+    } else req.body.status = 'inactive'
 
     const user = await transformAndValidate(User, { ...req.body })
     user.password = await bcrypt.hash(user.password, 10)
@@ -110,6 +113,7 @@ export const loginUser: RequestHandler<
           name: user.name,
           email: user.email,
           type: user.type,
+          status:user.status,
           employeeId:
             user.type === 'Employee' && user.employee
               ? user.employee.id

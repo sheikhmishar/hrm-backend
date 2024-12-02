@@ -34,7 +34,7 @@ declare global {
   }
   type Modify<T, R extends Partial<T>> = Omit<T, keyof R> & R
 
-  declare function parseInt(string?: string, radix?: number): number
+  declare function parseInt(string?: any, radix?: number): number
 
   interface Array<T> {
     includes(searchElement?: T, fromIndex?: number): boolean

@@ -240,7 +240,7 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 { "arrivalTime": "10:12:12", "leaveTime": "11:12:12", "date": "2024-02-16", "employee": {"id": 75} }
 
 ###
-DELETE {{api}}/attendances/12
+DELETe {{api}}/attendances/12
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 
@@ -276,7 +276,7 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 { "shift": "secondHalfDay" }
 
 ###
-DELETE {{api}}/leaves/1
+delete {{api}}/leaves/1
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 
@@ -315,5 +315,19 @@ Authorization: Bearer {{loginReq.response.body.$.token}}
 { "status": "paid" }
 
 ###
-DELETE {{api}}/salaries/1
+DELETe {{api}}/salaries/1
 Authorization: Bearer {{loginReq.response.body.$.token}}
+
+
+
+
+###
+GET {{api}}/monthly-salaries/companies?monthStartDate=2024-02-15
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+###
+POST {{api}}/monthly-salaries
+Content-Type: application/json
+Authorization: Bearer {{loginReq.response.body.$.token}}
+
+{ "startDate": "2024-02-15", "endDate": "2024-03-14" }

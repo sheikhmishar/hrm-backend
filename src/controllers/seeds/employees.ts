@@ -22,7 +22,7 @@ import { createDebug } from '../../utils/debug'
 import SITEMAP from '../_routes/SITEMAP'
 import { addEmployee, allEmployees } from '../employees'
 
-import employeesJson from './employees.json'
+import employeesData from './employeesData' // TODO: add to git
 
 const debug = createDebug('seed', dbgInfOpt)
 const debugError = createDebug('seed', dbgErrOpt)
@@ -116,8 +116,8 @@ const importEmployees = async () => {
   )) as GetResponseType<typeof allDutyTypes>
   dutyTypes?.forEach(dutyType => stat.dutyTypes.successful.push(dutyType))
 
-  for (let i = 1; i <= employeesJson.length; i++) {
-    const employeeJson = employeesJson[i]
+  for (let i = 1; i <= employeesData.length; i++) {
+    const employeeJson = employeesData[i]
 
     try {
       if (!employeeJson) throw new Error('blank employeeJSON')
@@ -318,7 +318,6 @@ const importEmployees = async () => {
         photo: undefined,
         forceId: 'true'
       } satisfies Employee & { forceId: string }
-      // FIXME: UMAMA OMI
       const data = (await customFetch(SITEMAP.employees.post, {
         method: 'post',
         body: JSON.stringify(employee)

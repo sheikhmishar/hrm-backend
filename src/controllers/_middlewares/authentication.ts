@@ -38,6 +38,9 @@ export class AuthUser {
   @IsIn([...User.TYPES, undefined])
   type!: (typeof User.TYPES)[number]
 
+  @IsIn([...User.STATUSES, undefined])
+  status!: (typeof User.STATUSES)[number]
+
   @IsOptional()
   @IsNumber()
   @IsPositive()
@@ -82,6 +85,7 @@ export const isAuthenticated: RequestHandler = async (req, _, next) => {
       name: validatedUser.name
     })
     if (!user) throw new ResponseError('Invalid User', UNAUTHORIZED)
+    validatedUser.status = user.status
 
     req.user = validatedUser
 

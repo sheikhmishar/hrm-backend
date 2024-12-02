@@ -3,3 +3,4 @@
 /.env*
 /seed
 /static/*
+/src/controllers/seeds/employeesData.ts

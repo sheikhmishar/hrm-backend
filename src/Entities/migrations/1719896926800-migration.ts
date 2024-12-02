@@ -11,6 +11,7 @@ export class Migration1719896926800 implements MigrationInterface {
         \`email\` varchar(255) NOT NULL,
         \`phoneNumber\` varchar(255) NOT NULL,
         \`password\` varchar(255) NOT NULL,
+        \`status\` enum ('active', 'inactive') NOT NULL DEFAULT 'inactive',
         \`type\` enum ('SuperAdmin', 'HR', 'Employee') NOT NULL DEFAULT 'HR',
         \`employeeId\` int NULL,
         UNIQUE INDEX \`user_email\` (\`email\`),

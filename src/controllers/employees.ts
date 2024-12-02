@@ -85,6 +85,7 @@ export const addEmployee: RequestHandler<
       name: employee.name,
       password: await bcrypt.hash('DEFAULT_PASSWORD', 10),
       phoneNumber: employee.phoneNumber,
+      status: employee.status,
       type: 'Employee',
       employee
     } satisfies User)
@@ -155,6 +156,7 @@ export const updateEmployee: RequestHandler<
       password:
         previousUser?.password || (await bcrypt.hash('DEFAULT_PASSWORD', 10)),
       type: 'Employee',
+      status: employee.status,
       employee
     } as User)
     user.employee = employee

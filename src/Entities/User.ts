@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsIn,
-  IsNotEmpty,
-  IsString,
-  Length,
-} from 'class-validator'
+import { IsEmail, IsIn, IsNotEmpty, IsString, Length } from 'class-validator'
 import {
   Column,
   Entity,
@@ -18,6 +12,7 @@ import { Type } from 'class-transformer'
 
 @Entity()
 export default class User {
+  public static STATUSES = ['active', 'inactive'] as const
   public static TYPES = ['SuperAdmin', 'HR', 'Employee'] as const
 
   @PrimaryGeneratedColumn()
@@ -50,6 +45,14 @@ export default class User {
   })
   @IsIn([...User.TYPES, undefined])
   type!: (typeof User.TYPES)[number]
+
+  @Column({
+    type: 'enum',
+    enum: User.STATUSES,
+    default: User.STATUSES[1]
+  })
+  @IsIn([...User.STATUSES, undefined])
+  status!: (typeof User.STATUSES)[number]
 
   @OneToOne(_type => Employee, {
     eager: true,

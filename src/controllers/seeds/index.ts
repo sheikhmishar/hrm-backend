@@ -97,6 +97,7 @@ const seedUsers = async (count: number) => {
         email: faker.internet.email(firstName, lastName),
         password: await bcrypt.hash(`${firstName} ${lastName}`, 10),
         phoneNumber: faker.phone.phoneNumber(PHONE_FORMAT),
+        status: faker.random.arrayElement(User.STATUSES),
         type: faker.random.arrayElement(User.TYPES)
       } satisfies IdLessEntity<User>)
 
