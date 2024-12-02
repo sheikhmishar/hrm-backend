@@ -5,6 +5,7 @@ import { isAuthenticated } from '../../_middlewares/authentication'
 import {
   allMonthlySalaries,
   allSalariesByEmployee,
+  allCompaniesMonthlySalaries,
   confirmMonthlySalary,
   generateMonthlySalary,
   monthlySalaryDetails,
@@ -16,6 +17,10 @@ import { monthlySalaries as sitemap } from '../SITEMAP'
 const monthlySalariesRouter = express.Router()
 monthlySalariesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)
 monthlySalariesRouter.get(sitemap.get, allMonthlySalaries)
+monthlySalariesRouter.get(
+  sitemap.getAllCompanySalaries,
+  allCompaniesMonthlySalaries
+)
 monthlySalariesRouter.get(sitemap.getAllByEmployeeId, allSalariesByEmployee)
 monthlySalariesRouter.get(sitemap.getById, monthlySalaryDetails)
 monthlySalariesRouter.post(sitemap.post, generateMonthlySalary)

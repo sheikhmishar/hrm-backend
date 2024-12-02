@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express'
 import type { ResultSetHeader } from 'mysql2'
 import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 
+import Company from '../Entities/Company'
 import Employee from '../Entities/Employee'
 import EmployeeAttendance from '../Entities/EmployeeAttendance'
 import EmployeeLeave from '../Entities/EmployeeLeave'
@@ -30,6 +31,36 @@ export const allMonthlySalaries: RequestHandler<
       await AppDataSource.getRepository(MonthlySalary).findBy({
         monthStartDate: req.query.monthStartDate || BEGIN_DATE
       })
+    )
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const allCompaniesMonthlySalaries: RequestHandler<
+  {},
+  (Company & { salaries: MonthlySalary[] })[],
+  {},
+  Partial<typeof _queries>
+> = async (req, res, next) => {
+  try {
+    const monthlySalaries = await AppDataSource.getRepository(
+      MonthlySalary
+    ).find({
+      where: {
+        monthStartDate: req.query.monthStartDate || BEGIN_DATE,
+        status: 'Paid'
+      },
+      relations: { employee: { company: true } }
+    })
+
+    res.json(
+      (await AppDataSource.getRepository(Company).find()).map(company => ({
+        ...company,
+        salaries: monthlySalaries.filter(
+          monthlySalary => monthlySalary.employee.company.id === company.id
+        )
+      }))
     )
   } catch (err) {
     next(err)
@@ -88,6 +119,9 @@ export const generateMonthlySalary: RequestHandler<
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
   try {
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
     const { startDate, endDate } = await transformAndValidate(
       SalaryGenerateBody,
       req.body
@@ -97,9 +131,6 @@ export const generateMonthlySalary: RequestHandler<
       stringToDate(startDate),
       stringToDate(endDate)
     )
-
-    await queryRunner.connect()
-    await queryRunner.startTransaction()
 
     // TODO: await to Promise all
 
