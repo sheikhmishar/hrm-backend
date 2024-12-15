@@ -331,3 +331,19 @@ Content-Type: application/json
 Authorization: Bearer {{loginReq.response.body.$.token}}
 
 { "startDate": "2024-02-15", "endDate": "2024-03-14" }
+
+
+###
+POST {{host}}/test
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="json"
+
+{"hi":"bye"}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="1.png"
+Content-Type: image/png
+
+< "./env.sample"
+------WebKitFormBoundary7MA4YWxkTrZu0gW--

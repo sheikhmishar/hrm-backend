@@ -28,8 +28,18 @@ if (!env.production) {
 app.set('name', 'skylane-hrm-backend')
 app.disable('x-powered-by')
 app.use(cors(config.corsConfig))
-// app.use((_, __, next) => setTimeout(next, 1000))
-app.use(express.json())
+app.use((req, res, next) => {
+  express.json({
+    limit:
+      req.method === 'POST' && req.path === SITEMAP.attendances.post
+        ? '20mb'
+        : undefined
+  })(req, res, next)
+})
+// let requests = 1
+// app.use((_, __, next) =>
+//   setTimeout(() => requests-- && next(), requests++ * 1000)
+// )
 app.use(SITEMAP.static._, express.static(config.staticPath))
 app.use(router)
 app.use(middlewares.unknownRouteHandler)
