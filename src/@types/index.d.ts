@@ -34,6 +34,8 @@ declare global {
   }
   type Modify<T, R extends Partial<T>> = Omit<T, keyof R> & R
 
+  type ParsedMulter<T extends Object = {}> = { [x in keyof T]?: Express.Multer.File[] }
+
   declare function parseInt(string?: any, radix?: number): number
 
   interface Array<T> {

@@ -8,7 +8,9 @@ import {
   dutyTypeDetails,
   updateDutyType
 } from '../../duty-types'
-import { dutyTypes as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { dutyTypes: sitemap } = SITEMAP
 
 const dutyTypesRouter = express.Router()
 dutyTypesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

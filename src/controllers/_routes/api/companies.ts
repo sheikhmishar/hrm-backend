@@ -8,7 +8,9 @@ import {
   companyDetails,
   updateCompany
 } from '../../companies'
-import { companies as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { companies: sitemap } = SITEMAP
 
 const companiesRouter = express.Router()
 companiesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

@@ -2,8 +2,10 @@ import express from 'express'
 
 import { matchFlatRouterRootPath } from '../../_middlewares'
 import { isAuthenticated } from '../../_middlewares/authentication'
-import { addLoan, allLoans, loanByEmployee, deleteLoan } from '../../loans'
-import { loans as sitemap } from '../SITEMAP'
+import { addLoan, allLoans, deleteLoan, loanByEmployee } from '../../loans'
+import SITEMAP from '../SITEMAP'
+
+const { loans: sitemap } = SITEMAP
 
 const loansRouter = express.Router()
 loansRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

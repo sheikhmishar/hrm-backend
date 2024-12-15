@@ -8,7 +8,9 @@ import {
   departmentDetails,
   updateDepartment
 } from '../../departments'
-import { departments as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { departments: sitemap } = SITEMAP
 
 const departmentsRouter = express.Router()
 departmentsRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

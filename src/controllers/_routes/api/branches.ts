@@ -8,7 +8,9 @@ import {
   branchDetails,
   updateBranch
 } from '../../branches'
-import { branches as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { branches: sitemap } = SITEMAP
 
 const branchesRouter = express.Router()
 branchesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

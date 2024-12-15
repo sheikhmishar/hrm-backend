@@ -8,7 +8,9 @@ import {
   designationDetails,
   updateDesignation
 } from '../../designations'
-import { designations as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { designations: sitemap } = SITEMAP
 
 const designationsRouter = express.Router()
 designationsRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

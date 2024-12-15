@@ -1,32 +1,33 @@
-const { employeeDocumentDirName } = require('../../configs')
-const { default: env } = require('../../configs/env')
+import { employeePhotoDirName, employeeDocumentDirName } from '../../configs'
+import env from '../../configs/env'
 
-const root = '/api',
-  staticRoot = '/static',
-  usersRoot = `${root}/users`,
-  employeesRoot = `${root}/employees`,
-  attendancesRoot = `${root}/attendances`,
-  leavesRoot = `${root}/leaves`,
-  salariesRoot = `${root}/salaries`,
-  loansRoot = `${root}/loans`,
-  holidaysRoot = `${root}/holidays`,
-  companiesRoot = `${root}/companies`,
-  departmentsRoot = `${root}/departments`,
-  monthlySalariesRoot = `${root}/monthly-salaries`,
-  settingsRoot = `${root}/settings`,
-  branchesRoot = `${root}/branches`,
-  dutyTypesRoot = `${root}/duty-types`,
-  salaryTypesRoot = `${root}/salary-types`,
-  designationsRoot = `${root}/designations`
+const root = '/api' as const,
+  staticRoot = '/static' as const,
+  usersRoot = `${root}/users` as const,
+  employeesRoot = `${root}/employees` as const,
+  attendancesRoot = `${root}/attendances` as const,
+  leavesRoot = `${root}/leaves` as const,
+  salariesRoot = `${root}/salaries` as const,
+  loansRoot = `${root}/loans` as const,
+  holidaysRoot = `${root}/holidays` as const,
+  companiesRoot = `${root}/companies` as const,
+  departmentsRoot = `${root}/departments` as const,
+  monthlySalariesRoot = `${root}/monthly-salaries` as const,
+  settingsRoot = `${root}/settings` as const,
+  branchesRoot = `${root}/branches` as const,
+  dutyTypesRoot = `${root}/duty-types` as const,
+  salaryTypesRoot = `${root}/salary-types` as const,
+  designationsRoot = `${root}/designations` as const
 
-const rootParams = { id: ':id' }
+const rootParams = { id: ':id' } as const
 
 const SITEMAP = {
   seed: !env.production ? `${root}/seed` : undefined,
   seedEmployees: !env.production ? `${root}/seedEmployees` : undefined,
   static: {
     _: staticRoot,
-    employeeDocuments: `${staticRoot}/${employeeDocumentDirName}`
+    employeeDocuments: `${staticRoot}/${employeeDocumentDirName}`,
+    employeePhotos: `${staticRoot}/${employeePhotoDirName}`
   },
   users: {
     _params: rootParams,
@@ -155,6 +156,6 @@ const SITEMAP = {
     getByProperty: `${settingsRoot}/:property`,
     put: `${settingsRoot}/:property`
   }
-}
+} as const
 
-module.exports = SITEMAP
+export default SITEMAP

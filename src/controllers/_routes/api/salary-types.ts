@@ -8,7 +8,9 @@ import {
   salaryTypeDetails,
   updateSalaryType
 } from '../../salary-types'
-import { salaryTypes as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { salaryTypes: sitemap } = SITEMAP
 
 const salaryTypesRouter = express.Router()
 salaryTypesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

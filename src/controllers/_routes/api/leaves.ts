@@ -5,10 +5,12 @@ import { isAuthenticated } from '../../_middlewares/authentication'
 import {
   addEmployeeLeave,
   allEmployeeLeaves,
-  employeeLeaveDetails,
-  deleteEmployeeLeave
+  deleteEmployeeLeave,
+  employeeLeaveDetails
 } from '../../leaves'
-import { leaves as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { leaves: sitemap } = SITEMAP
 
 const leavesRouter = express.Router()
 leavesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

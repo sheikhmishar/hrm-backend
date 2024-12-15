@@ -1,12 +1,17 @@
 import bcrypt from 'bcrypt'
 import type { RequestHandler } from 'express'
 
+import path from 'path'
+import fsPromise from 'fs/promises'
+import fs from 'fs'
+
 import Employee from '../Entities/Employee'
 import EmployeeSalary from '../Entities/EmployeeSalary'
 import User from '../Entities/User'
 import IdParams from '../Entities/_IdParams'
-import { ResponseError } from '../configs'
+import { ResponseError, employeePhotosPath } from '../configs'
 import AppDataSource from '../configs/db'
+import { decodeMultipartBody } from '../utils/multipart'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -71,13 +76,42 @@ export const addEmployee: RequestHandler<
   Partial<Employee>
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
+  const photoFile = (req.files as ParsedMulter<(typeof req)['body']>)
+    ?.photo?.[0]
+
+  // const documentFiles = (req.files as ParsedMulter<(typeof req)['body']>)?.photo // TODO: documents
+  // if (documentFiles)
+  //   req.body.documents = req.body.documents.map((document, i) => ({
+  //     ...document,
+  //     path: documentFiles[i]
+  //       ? documentFiles[i]!.filename +
+  //         '_' +
+  //         path.extname(documentFiles[i]!.originalname)
+  //       : undefined
+  //   }))
+  // else delete req.body.documents
+
   try {
     await queryRunner.connect()
     await queryRunner.startTransaction()
 
-    const employee = await transformAndValidate(Employee, req.body)
-    if ((req.body as any).forceId === 'true')
-      employee.id = parseInt(req.body.id?.toString())
+    const reqBody = decodeMultipartBody(req)
+    if (photoFile)
+      reqBody.photo =
+        photoFile.filename + '_' + path.extname(photoFile.originalname)
+    else delete reqBody.photo
+
+    const employee = await transformAndValidate(Employee, reqBody)
+
+    if ((reqBody as any).forceId === 'true')
+      employee.id = parseInt(reqBody.id?.toString())
+
+    if (photoFile && employee.photo) {
+      const destinationPath = path.join(employeePhotosPath, employee.photo)
+      await fsPromise.rename(photoFile.path, destinationPath)
+      photoFile.path = destinationPath
+      photoFile.filename = employee.photo
+    }
 
     const user = await transformAndValidate(User, {
       id: -1,
@@ -89,13 +123,13 @@ export const addEmployee: RequestHandler<
       type: 'Employee',
       employee
     } satisfies User)
-    if (req.body.branch?.id) employee.branch.id = req.body.branch.id
-    if (req.body.company?.id) employee.company.id = req.body.company.id
-    if (req.body.department?.id) employee.department.id = req.body.department.id
-    if (req.body.designation?.id)
-      employee.designation.id = req.body.designation.id
-    if (req.body.dutyType?.id) employee.dutyType.id = req.body.dutyType.id
-    if (req.body.salaryType?.id) employee.salaryType.id = req.body.salaryType.id
+    if (reqBody.branch?.id) employee.branch.id = reqBody.branch.id
+    if (reqBody.company?.id) employee.company.id = reqBody.company.id
+    if (reqBody.department?.id) employee.department.id = reqBody.department.id
+    if (reqBody.designation?.id)
+      employee.designation.id = reqBody.designation.id
+    if (reqBody.dutyType?.id) employee.dutyType.id = reqBody.dutyType.id
+    if (reqBody.salaryType?.id) employee.salaryType.id = reqBody.salaryType.id
 
     await queryRunner.manager.save(Employee, employee)
     user.employee = employee
@@ -107,6 +141,12 @@ export const addEmployee: RequestHandler<
       .status(CREATED)
       .json({ message: 'Successfully Created Employee', data: user })
   } catch (err) {
+    try {
+      if (photoFile?.path && fs.existsSync(photoFile.path))
+        await fsPromise.unlink(photoFile.path)
+    } catch (error) {
+      ;(err as Error).message += ', ' + (error as Error).message
+    }
     await queryRunner.rollbackTransaction()
     next(err)
   } finally {
@@ -120,6 +160,12 @@ export const updateEmployee: RequestHandler<
   Partial<Employee>
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
+  const photoFile = (req.files as ParsedMulter<(typeof req)['body']>)
+    ?.photo?.[0]
+
+  let prevPhotoPath = '',
+    backupPhotoPath = ''
+
   try {
     await queryRunner.connect()
     await queryRunner.startTransaction()
@@ -131,20 +177,46 @@ export const updateEmployee: RequestHandler<
     if (!previousEmployee)
       throw new ResponseError(`No Employee with ID: ${id}`, NOT_FOUND)
 
+    const reqBody = decodeMultipartBody(req)
+
+    if (photoFile)
+      reqBody.photo = photoFile.filename + path.extname(photoFile.originalname)
+    else delete reqBody.photo
+
     const employee = await transformAndValidate(Employee, {
       ...previousEmployee,
-      ...req.body
+      ...reqBody
     })
+
+    if (
+      photoFile?.path &&
+      employee.photo &&
+      employee.photo !== previousEmployee.photo
+    ) {
+      const destinationPath: string = path.join(
+        employeePhotosPath,
+        employee.photo
+      )
+      if (previousEmployee.photo) {
+        prevPhotoPath = path.join(employeePhotosPath, previousEmployee.photo)
+        backupPhotoPath = prevPhotoPath + '.bak'
+      }
+      if (fs.existsSync(prevPhotoPath))
+        await fsPromise.rename(prevPhotoPath, backupPhotoPath)
+      await fsPromise.rename(photoFile.path, destinationPath)
+      photoFile.path = destinationPath
+    }
+
     employee.id = id
-    employee.branch.id = req.body.branch?.id || previousEmployee.branch.id
-    employee.company.id = req.body.company?.id || previousEmployee.company.id
+    employee.branch.id = reqBody.branch?.id || previousEmployee.branch.id
+    employee.company.id = reqBody.company?.id || previousEmployee.company.id
     employee.department.id =
-      req.body.department?.id || previousEmployee.department.id
+      reqBody.department?.id || previousEmployee.department.id
     employee.designation.id =
-      req.body.designation?.id || previousEmployee.designation.id
-    employee.dutyType.id = req.body.dutyType?.id || previousEmployee.dutyType.id
+      reqBody.designation?.id || previousEmployee.designation.id
+    employee.dutyType.id = reqBody.dutyType?.id || previousEmployee.dutyType.id
     employee.salaryType.id =
-      req.body.salaryType?.id || previousEmployee.salaryType.id
+      reqBody.salaryType?.id || previousEmployee.salaryType.id
 
     const previousUser = await queryRunner.manager.getRepository(User).findOne({
       where: { employee: { id } }
@@ -197,9 +269,19 @@ export const updateEmployee: RequestHandler<
       await queryRunner.manager.insert(EmployeeSalary, salary)
     }
 
+    if (fs.existsSync(backupPhotoPath)) await fsPromise.unlink(backupPhotoPath)
+
     await queryRunner.commitTransaction()
     res.json({ message: 'Employee updated', data: employee })
   } catch (err) {
+    try {
+      if (photoFile?.path && fs.existsSync(photoFile.path))
+        await fsPromise.unlink(photoFile.path)
+      if (fs.existsSync(backupPhotoPath))
+        await fsPromise.rename(backupPhotoPath, prevPhotoPath)
+    } catch (error) {
+      ;(err as Error).message += ', ' + (error as Error).message
+    }
     await queryRunner.rollbackTransaction()
     next(err)
   } finally {

@@ -3,16 +3,18 @@ import express from 'express'
 import { matchFlatRouterRootPath } from '../../_middlewares'
 import { isAuthenticated } from '../../_middlewares/authentication'
 import {
+  allCompaniesMonthlySalaries,
   allMonthlySalaries,
   allSalariesByEmployee,
-  allCompaniesMonthlySalaries,
   confirmMonthlySalary,
   generateMonthlySalary,
   monthlySalaryDetails,
   updateMonthlySalary,
   withdrawMonthlySalary
 } from '../../monthly-salaries'
-import { monthlySalaries as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { monthlySalaries: sitemap } = SITEMAP
 
 const monthlySalariesRouter = express.Router()
 monthlySalariesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

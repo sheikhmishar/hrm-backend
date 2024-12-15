@@ -3,7 +3,9 @@ import express from 'express'
 import { matchFlatRouterRootPath } from '../../_middlewares'
 import { isAuthenticated } from '../../_middlewares/authentication'
 import { addHoliday, deleteHoliday, holidaysByMonth } from '../../holidays'
-import { holidays as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { holidays: sitemap } = SITEMAP
 
 const holidaysRouter = express.Router()
 holidaysRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

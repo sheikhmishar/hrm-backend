@@ -10,7 +10,9 @@ import {
   updateUser,
   userDetails
 } from '../../users'
-import { users as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { users: sitemap } = SITEMAP
 
 const usersRouter = express.Router()
 usersRouter.use(matchFlatRouterRootPath(sitemap._))

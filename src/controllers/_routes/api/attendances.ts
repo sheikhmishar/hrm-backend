@@ -6,11 +6,13 @@ import {
   addEmployeeAttendance,
   allEmployeeAttendances,
   companyWiseAttendance,
+  deleteEmployeeAttendance,
   employeeAttendanceDetails,
-  updateEmployeeAttendance,
-  deleteEmployeeAttendance
+  updateEmployeeAttendance
 } from '../../attendances'
-import { attendances as sitemap } from '../SITEMAP'
+import SITEMAP from '../SITEMAP'
+
+const { attendances: sitemap } = SITEMAP
 
 const attendancesRouter = express.Router()
 attendancesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)

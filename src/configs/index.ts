@@ -11,6 +11,8 @@ import {
 import type { DebugOptions } from '../utils/debug'
 
 export const staticPath = path.join(__dirname, '../../static')
+export const employeePhotoDirName = 'employee_photos'
+export const employeePhotosPath = path.join(staticPath, employeePhotoDirName)
 export const employeeDocumentDirName = 'employee_documents'
 export const employeeDocumentsPath = path.join(
   staticPath,
@@ -69,8 +71,5 @@ export const multerImageFileFilter: MulterOptions['fileFilter'] = (
 ) => {
   if (isImageType(file)) return cb(null, true)
 
-  const err = new ResponseError()
-  err.message = 'File Must be Image'
-  err.status = UNSUPPORTED_MEDIA_TYPE
-  cb(err)
+  cb(new ResponseError('File Must be Image', UNSUPPORTED_MEDIA_TYPE))
 }
