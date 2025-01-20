@@ -16,7 +16,7 @@ import Employee from './Employee'
 export default class EmployeeLeave {
   public static TYPES = ['paid', 'unpaid'] as const
   public static STATUSES = ['pending', 'approved'] as const
-  public static DURATIONS = ['fullday', 'halfday'] as const
+  public static DURATIONS = ['fullday', 'first_halfday', 'second_halfday'] as const
 
   @PrimaryGeneratedColumn()
   id!: number

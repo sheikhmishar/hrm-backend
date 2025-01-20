@@ -37,7 +37,7 @@ export class Migration1727015941698 implements MigrationInterface {
         \`reason\` varchar(255) NOT NULL,
         \`type\` enum ('paid', 'unpaid') NOT NULL DEFAULT 'paid',
         \`status\` enum ('pending', 'approved') NOT NULL DEFAULT 'pending',
-        \`duration\` enum ('fullday', 'halfday') NOT NULL DEFAULT 'fullday',
+        \`duration\` enum ('fullday', 'first_halfday', 'second_halfday') NOT NULL DEFAULT 'fullday',
         \`employeeId\` int NOT NULL,
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
