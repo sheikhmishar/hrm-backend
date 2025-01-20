@@ -3,17 +3,18 @@ import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 
 import Employee from '../Entities/Employee'
 import EmployeeLeave from '../Entities/EmployeeLeave'
+import Holiday from '../Entities/Holiday'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
 import {
   BEGIN_DATE,
   END_DATE,
-  getDateRange,
   dateToString,
-  stringToDate,
+  dayDifference,
+  getDateRange,
   getYearRange,
-  dayDifference
+  stringToDate
 } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
@@ -146,62 +147,73 @@ export const addEmployeeLeave: RequestHandler<
         dateToString
       ) as [string, string]
 
-      const employeePaidLeaveInMonth = (
-        await AppDataSource.getRepository(EmployeeLeave).find({
-          where: [
-            {
-              employee: { id: leave.employee.id },
-              type: 'paid',
-              from: And(MoreThanOrEqual(monthStart), LessThanOrEqual(monthEnd))
-            },
-            {
-              employee: { id: leave.employee.id },
-              type: 'paid',
-              to: And(MoreThanOrEqual(monthStart), LessThanOrEqual(monthEnd))
-            }
-          ]
-        })
-      ).reduce((total, leave) => total + leave.totalDays, 0)
+      const [employeePaidLeaveInMonth, employeePaidLeaveInYear] =
+        await Promise.all([
+          AppDataSource.getRepository(EmployeeLeave)
+            .findBy([
+              {
+                employee: { id: leave.employee.id },
+                type: 'paid',
+                from: And(
+                  MoreThanOrEqual(monthStart),
+                  LessThanOrEqual(monthEnd)
+                )
+              },
+              {
+                employee: { id: leave.employee.id },
+                type: 'paid',
+                to: And(MoreThanOrEqual(monthStart), LessThanOrEqual(monthEnd))
+              }
+            ])
+            .then(leaves =>
+              leaves.reduce((total, { totalDays }) => total + totalDays, 0)
+            ),
+
+          (
+            await AppDataSource.getRepository(EmployeeLeave).findBy([
+              {
+                employee: { id: leave.employee.id },
+                type: 'paid',
+                from: And(MoreThanOrEqual(yearStart), LessThanOrEqual(yearEnd))
+              },
+              {
+                employee: { id: leave.employee.id },
+                type: 'paid',
+                to: And(MoreThanOrEqual(yearStart), LessThanOrEqual(yearEnd))
+              }
+            ])
+          ).reduce((total, { totalDays }) => total + totalDays, 0)
+        ])
 
       if (leave.totalDays + employeePaidLeaveInMonth > 3)
-        throw new ResponseError('Monthly quota full', CONFLICT)
-
-      const employeePaidLeaveInYear = (
-        await AppDataSource.getRepository(EmployeeLeave).find({
-          where: [
-            {
-              employee: { id: leave.employee.id },
-              type: 'paid',
-              from: And(MoreThanOrEqual(yearStart), LessThanOrEqual(yearEnd))
-            },
-            {
-              employee: { id: leave.employee.id },
-              type: 'paid',
-              to: And(MoreThanOrEqual(yearStart), LessThanOrEqual(yearEnd))
-            }
-          ]
-        })
-      ).reduce((total, leave) => total + leave.totalDays, 0)
+        throw new ResponseError(`Monthly quota exceeded: ${leave.totalDays} + ${employeePaidLeaveInMonth} > ${3}`, CONFLICT)
 
       if (leave.totalDays + employeePaidLeaveInYear > 13)
         // TODO: 13 const
-        throw new ResponseError('Yearly quota full', CONFLICT)
+        throw new ResponseError(`Yearly quota full ${leave.totalDays} + ${employeePaidLeaveInYear} > ${13}`, CONFLICT)
     }
 
-    const overlappingLeaves = await AppDataSource.getRepository(
-      EmployeeLeave
-    ).countBy([
-      {
-        employee: { id: leave.employee.id },
-        from: And(MoreThanOrEqual(leave.from), LessThanOrEqual(leave.to))
-      },
-      {
-        employee: { id: leave.employee.id },
-        to: And(MoreThanOrEqual(leave.from), LessThanOrEqual(leave.to))
-      }
+    const [overlappingLeaves, overlappedHolidays] = await Promise.all([
+      AppDataSource.getRepository(EmployeeLeave).countBy([
+        {
+          employee: { id: leave.employee.id },
+          from: And(MoreThanOrEqual(leave.from), LessThanOrEqual(leave.to))
+        },
+        {
+          employee: { id: leave.employee.id },
+          to: And(MoreThanOrEqual(leave.from), LessThanOrEqual(leave.to))
+        }
+      ]),
+
+      AppDataSource.getRepository(Holiday).countBy({
+        date: And(MoreThanOrEqual(leave.from), LessThanOrEqual(leave.to))
+      })
     ])
+
     if (overlappingLeaves)
       throw new ResponseError('Entry already exists', CONFLICT)
+    if (overlappedHolidays)
+      throw new ResponseError('Holiday Exists on same date', CONFLICT)
 
     await AppDataSource.manager.insert(EmployeeLeave, leave)
 
