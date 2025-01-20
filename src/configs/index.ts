@@ -3,6 +3,7 @@ import mime from 'mime'
 import type { Options as MulterOptions } from 'multer'
 
 import path from 'path'
+import fs from 'fs'
 
 import {
   getStatusText,
@@ -18,6 +19,11 @@ export const employeeDocumentsPath = path.join(
   staticPath,
   employeeDocumentDirName
 )
+
+if (!fs.existsSync(employeePhotosPath))
+  fs.mkdirSync(employeePhotosPath, { recursive: true })
+if (!fs.existsSync(employeeDocumentsPath))
+  fs.mkdirSync(employeeDocumentsPath, { recursive: true })
 
 const { UNSUPPORTED_MEDIA_TYPE, INTERNAL_SERVER_ERROR } = statusCodes
 

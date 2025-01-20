@@ -308,6 +308,7 @@ const importEmployees = async () => {
         extraBonus: extraBonus === 'applicable' ? 'applicable' : 'inApplicable',
         leaves: [],
         loans: [],
+        documents: [],
         loanRemaining: 0,
         loanTaken: 0,
         salaries: [],

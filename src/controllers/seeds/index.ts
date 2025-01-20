@@ -340,6 +340,7 @@ const seedEmployees = async (count: number) => {
         contacts: [],
         leaves: [],
         attendances: [],
+        documents: [],
         salaries: [],
         loans: []
       } satisfies IdLessEntity<Employee>)

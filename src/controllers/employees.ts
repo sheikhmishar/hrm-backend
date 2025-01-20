@@ -9,7 +9,11 @@ import Employee from '../Entities/Employee'
 import EmployeeSalary from '../Entities/EmployeeSalary'
 import User from '../Entities/User'
 import IdParams from '../Entities/_IdParams'
-import { ResponseError, employeePhotosPath } from '../configs'
+import {
+  ResponseError,
+  employeeDocumentsPath,
+  employeePhotosPath
+} from '../configs'
 import AppDataSource from '../configs/db'
 import { decodeMultipartBody } from '../utils/multipart'
 import transformAndValidate from '../utils/transformAndValidate'
@@ -73,23 +77,13 @@ export const employeeDetails: RequestHandler<
 export const addEmployee: RequestHandler<
   {},
   { message: string; data: User },
-  Partial<Employee>
+  RecursivePartial<Employee> // TODO: all
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
   const photoFile = (req.files as ParsedMulter<(typeof req)['body']>)
     ?.photo?.[0]
-
-  // const documentFiles = (req.files as ParsedMulter<(typeof req)['body']>)?.photo // TODO: documents
-  // if (documentFiles)
-  //   req.body.documents = req.body.documents.map((document, i) => ({
-  //     ...document,
-  //     path: documentFiles[i]
-  //       ? documentFiles[i]!.filename +
-  //         '_' +
-  //         path.extname(documentFiles[i]!.originalname)
-  //       : undefined
-  //   }))
-  // else delete req.body.documents
+  const documentFiles = (req.files as ParsedMulter<(typeof req)['body']>)
+    ?.documents
 
   try {
     await queryRunner.connect()
@@ -100,6 +94,17 @@ export const addEmployee: RequestHandler<
       reqBody.photo =
         photoFile.filename + '_' + path.extname(photoFile.originalname)
     else delete reqBody.photo
+
+    if (documentFiles)
+      reqBody.documents = reqBody.documents?.map((document, i) => ({
+        ...document,
+        path: documentFiles[i]
+          ? documentFiles[i]!.filename +
+            '_' +
+            path.extname(documentFiles[i]!.originalname)
+          : document?.path || ''
+      }))
+    else delete reqBody.documents
 
     const employee = await transformAndValidate(Employee, reqBody)
 
@@ -112,6 +117,17 @@ export const addEmployee: RequestHandler<
       photoFile.path = destinationPath
       photoFile.filename = employee.photo
     }
+
+    if (documentFiles)
+      for (let i = 0; i < employee.documents.length; i++) {
+        const destinationPath = path.join(
+          employeeDocumentsPath,
+          employee.documents[i]!.path
+        )
+        await fsPromise.rename(documentFiles[i]!.path, destinationPath)
+        documentFiles[i]!.path = destinationPath
+        documentFiles[i]!.filename = employee.documents[i]!.path
+      }
 
     const user = await transformAndValidate(User, {
       id: -1,
@@ -147,6 +163,14 @@ export const addEmployee: RequestHandler<
     } catch (error) {
       ;(err as Error).message += ', ' + (error as Error).message
     }
+    documentFiles?.forEach(async documentFile => {
+      try {
+        if (fs.existsSync(documentFile.path))
+          await fsPromise.unlink(documentFile.path)
+      } catch (error) {
+        ;(err as Error).message += ', ' + (error as Error).message
+      }
+    })
     await queryRunner.rollbackTransaction()
     next(err)
   } finally {
@@ -157,14 +181,20 @@ export const addEmployee: RequestHandler<
 export const updateEmployee: RequestHandler<
   Partial<typeof _params>,
   { message: string; data: Employee },
-  Partial<Employee>
+  RecursivePartial<Employee>
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
   const photoFile = (req.files as ParsedMulter<(typeof req)['body']>)
     ?.photo?.[0]
+  const documentFiles = (req.files as ParsedMulter<(typeof req)['body']>)
+    ?.documents
 
   let prevPhotoPath = '',
     backupPhotoPath = ''
+
+  let prevDocumentsPaths: string[] = [],
+    backupDocumentsPaths: string[] = [],
+    newDocumentsPaths: string[] = []
 
   try {
     await queryRunner.connect()
@@ -182,6 +212,24 @@ export const updateEmployee: RequestHandler<
     if (photoFile)
       reqBody.photo = photoFile.filename + path.extname(photoFile.originalname)
     else delete reqBody.photo
+
+    if (documentFiles) {
+      let i = 0
+      reqBody.documents = reqBody.documents?.map(document => {
+        const documentFile = documentFiles[i]
+        const hasBlob = document?.path?.startsWith('blob:') // TODO: check
+        if (hasBlob) i++
+        return {
+          ...document,
+          path:
+            hasBlob && documentFile
+              ? documentFile.filename +
+                '_' +
+                path.extname(documentFile.originalname)
+              : document?.path
+        }
+      })
+    }
 
     const employee = await transformAndValidate(Employee, {
       ...previousEmployee,
@@ -206,6 +254,38 @@ export const updateEmployee: RequestHandler<
       await fsPromise.rename(photoFile.path, destinationPath)
       photoFile.path = destinationPath
     }
+
+    if (documentFiles) {
+      let docIdx = 0
+      for (let i = 0; i < employee.documents.length; i++) {
+        const destinationPath: string = path.join(
+          employeeDocumentsPath,
+          employee.documents[i]!.path
+        )
+        if (
+          !fs.existsSync(destinationPath) &&
+          documentFiles[docIdx] &&
+          fs.existsSync(documentFiles[docIdx]!.path)
+        ) {
+          await fsPromise.rename(documentFiles[docIdx]!.path, destinationPath)
+          documentFiles[docIdx]!.path = destinationPath
+
+          newDocumentsPaths.push(destinationPath)
+          docIdx++
+        }
+      }
+    }
+
+    previousEmployee.documents.forEach(async document => {
+      if (!employee.documents.find(({ path }) => path === document.path)) {
+        const prevDocumentPath = path.join(employeeDocumentsPath, document.path)
+        const backupDocumentPath = prevDocumentPath + '.bak'
+        prevDocumentsPaths.push(prevDocumentPath)
+        backupDocumentsPaths.push(backupDocumentPath)
+        if (fs.existsSync(prevDocumentPath))
+          await fsPromise.rename(prevDocumentPath, backupDocumentPath)
+      }
+    })
 
     employee.id = id
     employee.branch.id = reqBody.branch?.id || previousEmployee.branch.id
@@ -270,6 +350,10 @@ export const updateEmployee: RequestHandler<
     }
 
     if (fs.existsSync(backupPhotoPath)) await fsPromise.unlink(backupPhotoPath)
+    backupDocumentsPaths.forEach(async backupDocumentPath => {
+      if (fs.existsSync(backupDocumentPath))
+        await fsPromise.unlink(backupDocumentPath)
+    })
 
     await queryRunner.commitTransaction()
     res.json({ message: 'Employee updated', data: employee })
@@ -282,6 +366,22 @@ export const updateEmployee: RequestHandler<
     } catch (error) {
       ;(err as Error).message += ', ' + (error as Error).message
     }
+    newDocumentsPaths.forEach(async newDocumentPath => {
+      try {
+        if (fs.existsSync(newDocumentPath))
+          await fsPromise.unlink(newDocumentPath)
+      } catch (error) {
+        ;(err as Error).message += ', ' + (error as Error).message
+      }
+    })
+    backupDocumentsPaths.forEach(async (backupDocumentPath, i) => {
+      try {
+        if (fs.existsSync(backupDocumentPath) && prevDocumentsPaths[i])
+          await fsPromise.rename(backupDocumentPath, prevDocumentsPaths[i]!)
+      } catch (error) {
+        ;(err as Error).message += ', ' + (error as Error).message
+      }
+    })
     await queryRunner.rollbackTransaction()
     next(err)
   } finally {

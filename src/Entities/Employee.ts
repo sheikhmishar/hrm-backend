@@ -35,11 +35,12 @@ import DutyType from './DutyType'
 import EmployeeAsset from './EmployeeAsset'
 import EmployeeAttendance from './EmployeeAttendance'
 import EmployeeContact from './EmployeeContacts'
+import EmployeeDocument from './EmployeeDocument'
 import EmployeeFinancial from './EmployeeFinancial'
 import EmployeeLeave from './EmployeeLeave'
 import EmployeeSalary from './EmployeeSalary'
-import SalaryType from './SalaryType'
 import Loan from './Loan'
+import SalaryType from './SalaryType'
 
 @Entity()
 export default class Employee {
@@ -252,6 +253,17 @@ export default class Employee {
   @ValidateNested()
   @Type(_ => EmployeeAsset)
   assets!: EmployeeAsset[]
+
+  @OneToMany(_type => EmployeeDocument, document => document.employee, {
+    cascade: true,
+    nullable: false,
+    eager: true
+  })
+  @JoinColumn()
+  @IsArray()
+  @ValidateNested()
+  @Type(_ => EmployeeDocument)
+  documents!: EmployeeDocument[]
 
   @OneToMany(_type => EmployeeFinancial, financial => financial.employee, {
     cascade: true,

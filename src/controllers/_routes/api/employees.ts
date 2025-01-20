@@ -2,7 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import path from 'path'
 
-import { employeePhotosPath } from '../../../configs'
+import { staticPath } from '../../../configs'
 import { matchFlatRouterRootPath } from '../../_middlewares'
 import { isAuthenticated } from '../../_middlewares/authentication'
 import {
@@ -18,14 +18,17 @@ import Employee from '../../../Entities/Employee'
 const { employees: sitemap } = SITEMAP
 
 const multerInstance = multer({
-  dest: path.join(employeePhotosPath, 'tmp'),
+  dest: path.join(staticPath, 'tmp'),
   limits: {
     fileSize: 4 * 1024 * 1024,
     fields: 1,
-    files: (['photo'] satisfies (keyof Employee)[]).length
+    files: 6
   }
 })
-const multerFields = [{ name: 'photo' satisfies keyof Employee, maxCount: 1 }]
+const multerFields = [
+  { name: 'photo' satisfies keyof Employee, maxCount: 1 },
+  { name: 'documents' satisfies keyof Employee, maxCount: 5 }
+]
 
 const employeesRouter = express.Router()
 employeesRouter.use(matchFlatRouterRootPath(sitemap._), isAuthenticated)
