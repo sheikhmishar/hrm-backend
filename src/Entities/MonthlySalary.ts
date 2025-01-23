@@ -50,6 +50,11 @@ export default class MonthlySalary {
   @Min(0)
   bonus!: number
 
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
+  leaveEncashment !: number
+
   @Column()
   @IsNumber()
   @Min(0)

@@ -12,6 +12,7 @@ export class Migration1728392882015 implements MigrationInterface {
         \`overtime\` int NOT NULL,
         \`overtimePayment\` decimal(9,2) NOT NULL,
         \`bonus\` decimal(9,2) NOT NULL,
+        \`leaveEncashment\` decimal(9,2) NOT NULL,
         \`late\` int NOT NULL,
         \`lateDeduction\` decimal(9,2) NOT NULL,
         \`penalty\` decimal(9,2) NOT NULL,

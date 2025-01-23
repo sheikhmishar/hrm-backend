@@ -232,6 +232,7 @@ export const generateMonthlySalary: RequestHandler<
           penalty: 0,
           overtime,
           overtimePayment,
+          leaveEncashment: 0,
           bonus: 0,
           loanDeduction: 0,
           totalSalary: Math.max(
