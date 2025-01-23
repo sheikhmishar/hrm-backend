@@ -181,7 +181,7 @@ export const addEmployee: RequestHandler<
 export const updateEmployee: RequestHandler<
   Partial<typeof _params>,
   { message: string; data: Employee },
-  RecursivePartial<Employee>
+  RecursivePartial<Employee & Pick<EmployeeSalary, 'remarks'>>
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
   const photoFile = (req.files as ParsedMulter<(typeof req)['body']>)
@@ -343,6 +343,7 @@ export const updateEmployee: RequestHandler<
         taskWisePayment: employee.taskWisePayment,
         wordLimit: employee.wordLimit,
         designation: employee.designation,
+        remarks: reqBody.remarks,
         employee
       } satisfies EmployeeSalary)
       salary.employee = employee

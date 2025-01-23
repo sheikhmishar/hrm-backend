@@ -16,6 +16,7 @@ export class Migration1727027529425 implements MigrationInterface {
         \`totalSalary\` decimal(9,2) NOT NULL,
         \`taskWisePayment\` int NULL,
         \`wordLimit\` int NULL,
+        \`remarks\` VARCHAR(100) NULL,
         \`designationId\` int NOT NULL,
         \`employeeId\` int NOT NULL,
         PRIMARY KEY (\`id\`)
