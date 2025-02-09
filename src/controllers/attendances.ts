@@ -247,12 +247,15 @@ export const addEmployeeAttendance: RequestHandler<
         }
         alreadyExists = await AppDataSource.manager.existsBy(EmployeeLeave, {
           type: 'paid',
+          duration: 'fullday',
           employee: { id: attendance.employee.id },
           from: LessThanOrEqual(attendance.date),
           to: MoreThanOrEqual(attendance.date)
         })
         if (alreadyExists) {
-          data.push({ error: 'Paid leave already exists at the same date' })
+          data.push({
+            error: 'Fullday Paid leave already exists at the same date'
+          })
           continue
         }
         const employee = await AppDataSource.manager.findOneBy(Employee, {
