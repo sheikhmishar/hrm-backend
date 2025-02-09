@@ -20,6 +20,7 @@ import {
   BEGIN_DATE,
   END_DATE,
   capitalizeDelim,
+  stringToDate,
   timeToDate
 } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
@@ -212,6 +213,7 @@ export const addEmployeeAttendance: RequestHandler<
   { message: string; data?: { error?: string }[] },
   EmployeeAttendance[]
 > = async (req, res, next) => {
+  const currentDate = new Date()
   try {
     if (!Array.isArray(req.body) || !req.body.length) {
       const error = new ResponseError('Invalid attendance list')
@@ -229,6 +231,10 @@ export const addEmployeeAttendance: RequestHandler<
         if (req.body[i]?.employee.id)
           attendance.employee.id = req.body[i]!.employee.id
 
+        if (stringToDate(attendance.date) > currentDate) {
+          data.push({ error: 'Cannot add attendance in future date' })
+          continue
+        }
         let alreadyExists = await AppDataSource.manager.existsBy(Employee, {
           id: attendance.employee.id,
           attendances: { date: attendance.date }
