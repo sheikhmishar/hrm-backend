@@ -12,7 +12,12 @@ import MonthlySalary from '../Entities/MonthlySalary'
 import IdParams from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
-import { BEGIN_DATE, dayDifference, stringToDate } from '../utils/misc'
+import {
+  BEGIN_DATE,
+  dayDifference,
+  generateCalender,
+  stringToDate
+} from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
@@ -115,27 +120,35 @@ class SalaryGenerateBody {
 export const generateMonthlySalary: RequestHandler<
   {},
   { message: string },
-  { startDate?: string; endDate?: string }
+  Partial<SalaryGenerateBody>
 > = async (req, res, next) => {
   const queryRunner = AppDataSource.createQueryRunner()
   try {
     await queryRunner.connect()
     await queryRunner.startTransaction()
 
+    const currentDate = new Date()
+
     const { startDate, endDate } = await transformAndValidate(
       SalaryGenerateBody,
       req.body
     )
+    const fromDate = stringToDate(startDate)
+    const toDate = stringToDate(endDate)
 
-    const totalDays = dayDifference(
-      stringToDate(startDate),
-      stringToDate(endDate)
-    )
+    const daysTillToday = generateCalender(fromDate, toDate).filter(
+      ({ month, date }) =>
+        stringToDate(
+          `${
+            month === '01' ? toDate.getFullYear() : fromDate.getFullYear()
+          }-${month}-${date}`
+        ) <= currentDate
+    ).length // TODO: math
 
     // TODO: await to Promise all
 
-    const [attendances, paidLeaves, allEmployees, holidayCount] =
-      await Promise.all([
+    const [attendances, paidLeaves, allEmployees, holidays] = await Promise.all(
+      [
         queryRunner.manager.getRepository(EmployeeAttendance).find({
           where: {
             date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
@@ -162,10 +175,15 @@ export const generateMonthlySalary: RequestHandler<
           where: { dateOfJoining: LessThanOrEqual(endDate) },
           order: { id: 'DESC' }
         }),
-        queryRunner.manager.getRepository(Holiday).countBy({
+        queryRunner.manager.getRepository(Holiday).findBy({
           date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate))
         })
-      ])
+      ]
+    )
+
+    const holidaysAfterToday = holidays.filter(
+      ({ date }) => stringToDate(date) > currentDate
+    ).length
 
     const employees = allEmployees.map(employee =>
       Object.assign(employee, {
@@ -189,21 +207,59 @@ export const generateMonthlySalary: RequestHandler<
           totalSalary
         } = employee
 
-        const totalPaidLeaves = leaves.reduce(
+        const paidLeavesAfterToday = leaves.reduce(
+          (total, { from, to, duration }) => {
+            const fromDate = new Date(from)
+            const toDate = new Date(to)
+
+            return (
+              total +
+              (currentDate < fromDate && currentDate < toDate
+                ? dayDifference(fromDate, toDate)
+                : currentDate > toDate
+                ? 0
+                : dayDifference(currentDate, toDate)) *
+                (duration === 'fullday' ? 1 : 0.5)
+            )
+          },
+          0
+        )
+
+        const totalDays =
+          daysTillToday + holidaysAfterToday + paidLeavesAfterToday
+
+        const presentWithNoHolidayOrFullPaidLeave = attendances.reduce(
+          (total, attendance) => {
+            const date = stringToDate(attendance.date)
+
+            const paidLeave = paidLeaves.find(
+              ({ from, to }) =>
+                stringToDate(from) <= date && date <= stringToDate(to)
+            )
+            return (
+              total +
+              (holidays.find(({ date }) => date === attendance.date)
+                ? 0
+                : paidLeave
+                ? paidLeave.duration === 'fullday'
+                  ? 0
+                  : 0.5
+                : 1)
+            )
+          },
+          0
+        )
+
+        const paidLeavesTotal = leaves.reduce(
           (total, { totalDays }) => total + totalDays,
           0
         )
 
-        const totalHolidayAttendances = attendances.reduce(
-          (total, { totalTime, overtime }) =>
-            total + (totalTime === overtime ? 1 : 0),
-          0
-        )
-        const totalLeaves =
+        const totalLeaves = // or absense
           totalDays -
-          holidayCount -
-          totalPaidLeaves -
-          (attendances.length - totalHolidayAttendances)
+          presentWithNoHolidayOrFullPaidLeave -
+          holidays.length -
+          paidLeavesTotal
 
         const leaveDeduction = totalLeaves * (employee.basicSalary / totalDays)
 
@@ -242,7 +298,7 @@ export const generateMonthlySalary: RequestHandler<
           paymentMethod: 'Cash',
           monthStartDate: startDate,
           status: 'Unpaid',
-          paidAt: new Date(),
+          paidAt: currentDate,
           employee
         } satisfies MonthlySalary)
         monthlySalary.employee = employee
