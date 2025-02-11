@@ -128,3 +128,22 @@ export const dayDifference = (date1: Date, date2: Date, absolute = true) => {
     Math.floor(timestampDiff / (3600000 * 24)) + (timestampDiff < 0 ? -1 : 1)
   )
 }
+
+const nameOfDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const
+
+export function generateCalender(from: Date, to: Date) {
+  const firstDay = from.getDay()
+
+  const date = new Date(from)
+  date.setDate(date.getDate() - 1)
+  const daysInMonth = new Array(dayDifference(from, to)).fill(null).map(() => {
+    date.setTime(date.getTime() + 24 * 3600000)
+    return dateToString(date).substring(5)
+  })
+
+  return daysInMonth.map((date, i) => ({
+    dayName: nameOfDays[(firstDay + i) % 7] as (typeof nameOfDays)[number],
+    date: date.substring(3),
+    month: date.substring(0, 2)
+  }))
+}

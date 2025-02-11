@@ -7,9 +7,26 @@ import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
 import EmployeeSalary from '../Entities/EmployeeSalary'
+import Employee from '../Entities/Employee'
 
 const { NOT_FOUND } = statusCodes
 const { _params } = SITEMAP.salaries
+
+export const allSalaryDetails: RequestHandler<
+  Partial<typeof _params>,
+  Employee[],
+  {}
+> = async (_, res, next) => {
+  try {
+    res.json(
+      await AppDataSource.getRepository(Employee).find({
+        relations: { salaries: true }
+      })
+    )
+  } catch (err) {
+    next(err)
+  }
+}
 
 export const employeeSalaryDetails: RequestHandler<
   Partial<typeof _params>,
