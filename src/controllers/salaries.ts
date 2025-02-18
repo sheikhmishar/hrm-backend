@@ -1,25 +1,43 @@
 import type { RequestHandler } from 'express'
+import { And, Or, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 
+import Employee from '../Entities/Employee'
+import EmployeeSalary from '../Entities/EmployeeSalary'
 import { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
+import { BEGIN_DATE, END_DATE, stringToDate } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
-import EmployeeSalary from '../Entities/EmployeeSalary'
-import Employee from '../Entities/Employee'
 
 const { NOT_FOUND } = statusCodes
-const { _params } = SITEMAP.salaries
+const { _params, _queries } = SITEMAP.salaries
 
 export const allSalaryDetails: RequestHandler<
   Partial<typeof _params>,
   Employee[],
-  {}
-> = async (_, res, next) => {
+  {},
+  Partial<typeof _queries>
+> = async (req, res, next) => {
   try {
+    ;({
+      salaries: {
+        changedAt: And(
+          MoreThanOrEqual(
+            stringToDate((req.query.from || BEGIN_DATE) as string)
+          ),
+          LessThanOrEqual(stringToDate((req.query.to || END_DATE) as string))
+        )
+      },
+      dateOfJoining: Or(
+        LessThanOrEqual((req.query.from || BEGIN_DATE) as string),
+        LessThanOrEqual((req.query.to || END_DATE) as string)
+      )
+    })
     res.json(
       await AppDataSource.getRepository(Employee).find({
+        where: {},
         relations: { salaries: true }
       })
     )

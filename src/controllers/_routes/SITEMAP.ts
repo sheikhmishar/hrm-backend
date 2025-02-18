@@ -78,6 +78,7 @@ const SITEMAP = {
   },
   salaries: {
     _params: { ...rootParams, employeeId: ':employeeId' },
+    _queries: { from: 'from', to: 'to' },
     _: salariesRoot,
     get: salariesRoot,
     getByEmployeeId: `${salariesRoot}/:employeeId`
