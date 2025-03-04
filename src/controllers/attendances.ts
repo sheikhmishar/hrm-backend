@@ -56,6 +56,7 @@ async function modifyAttendance(
           )
       : -1
 
+  // TODO: pass via param
   const lateGracePeriod = parseInt(
     settings.find(
       setting => setting.property === 'ATTENDANCE_ENTRY_GRACE_PERIOD'
@@ -66,8 +67,10 @@ async function modifyAttendance(
       setting => setting.property === 'ATTENDANCE_LEAVE_GRACE_PERIOD'
     )?.value || '0m'
   )
-  if (late > -1 && late <= lateGracePeriod) late = 0
-  if (overtime > -1 && overtime <= overtimeGracePeriod) overtime = 0
+  if (late > -1) late = late > lateGracePeriod ? late - lateGracePeriod : 0
+  if (overtime > -1)
+    overtime =
+      overtime > overtimeGracePeriod ? overtime - overtimeGracePeriod : 0
 
   attendance.late = late
   attendance.overtime = overtime
