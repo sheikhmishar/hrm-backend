@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express'
-import { And, Or, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
+import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
 
 import Employee from '../Entities/Employee'
 import EmployeeSalary from '../Entities/EmployeeSalary'
@@ -30,10 +30,7 @@ export const allSalaryDetails: RequestHandler<
           LessThanOrEqual(stringToDate((req.query.to || END_DATE) as string))
         )
       },
-      dateOfJoining: Or(
-        LessThanOrEqual((req.query.from || BEGIN_DATE) as string),
-        LessThanOrEqual((req.query.to || END_DATE) as string)
-      )
+      dateOfJoining: LessThanOrEqual((req.query.to || END_DATE) as string)
     })
     res.json(
       await AppDataSource.getRepository(Employee).find({

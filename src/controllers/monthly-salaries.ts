@@ -232,7 +232,7 @@ export const generateMonthlySalary: RequestHandler<
           (total, attendance) => {
             const date = stringToDate(attendance.date)
 
-            const paidLeave = paidLeaves.find(
+            const paidLeave = leaves.find(
               ({ from, to }) =>
                 stringToDate(from) <= date && date <= stringToDate(to)
             )
