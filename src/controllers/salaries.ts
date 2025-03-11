@@ -29,7 +29,9 @@ export const allSalaryDetails: RequestHandler<
               MoreThanOrEqual(
                 stringToDate((req.query.from || BEGIN_DATE) as string)
               ),
-              LessThanOrEqual(stringToDate((req.query.to || END_DATE) as string))
+              LessThanOrEqual(
+                stringToDate((req.query.to || END_DATE) as string)
+              )
             )
           },
           dateOfJoining: LessThanOrEqual((req.query.to || END_DATE) as string)

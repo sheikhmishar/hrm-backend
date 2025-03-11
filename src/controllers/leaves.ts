@@ -186,11 +186,21 @@ export const addEmployeeLeave: RequestHandler<
         ])
 
       if (leave.totalDays + employeePaidLeaveInMonth > 3)
-        throw new ResponseError(`Monthly quota exceeded: ${leave.totalDays} + ${employeePaidLeaveInMonth} > ${3}`, CONFLICT)
+        throw new ResponseError(
+          `Monthly quota exceeded: ${
+            leave.totalDays
+          } + ${employeePaidLeaveInMonth} > ${3}`,
+          CONFLICT
+        )
 
       if (leave.totalDays + employeePaidLeaveInYear > 13)
         // TODO: 13 const
-        throw new ResponseError(`Yearly quota full ${leave.totalDays} + ${employeePaidLeaveInYear} > ${13}`, CONFLICT)
+        throw new ResponseError(
+          `Yearly quota full ${
+            leave.totalDays
+          } + ${employeePaidLeaveInYear} > ${13}`,
+          CONFLICT
+        )
     }
 
     const [overlappingLeaves, overlappedHolidays] = await Promise.all([

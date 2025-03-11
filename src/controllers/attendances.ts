@@ -131,11 +131,14 @@ export const companyWiseAttendance: RequestHandler<
 
       AppDataSource.getRepository(Employee).find({
         order: { id: 'desc' },
-        where: { dateOfJoining: LessThanOrEqual(date) }
+        where: { dateOfJoining: LessThanOrEqual(date), status: 'active' }
       }),
 
       AppDataSource.getRepository(EmployeeAttendance).find({
-        where: { date, employee: { dateOfJoining: LessThanOrEqual(date) } },
+        where: {
+          date,
+          employee: { dateOfJoining: LessThanOrEqual(date), status: 'active' }
+        },
         relations: { employee: true }
       }),
 
@@ -144,7 +147,7 @@ export const companyWiseAttendance: RequestHandler<
           from: LessThanOrEqual(date),
           to: MoreThanOrEqual(date),
           type: 'paid',
-          employee: { dateOfJoining: LessThanOrEqual(date) }
+          employee: { dateOfJoining: LessThanOrEqual(date), status: 'active' }
         },
         relations: { employee: true }
       })
@@ -266,6 +269,10 @@ export const addEmployeeAttendance: RequestHandler<
         })
         if (!employee) {
           data.push({ error: 'Invalid Employee' })
+          continue
+        }
+        if (employee.status !== 'active') {
+          data.push({ error: 'Inactive Employee' })
           continue
         }
 
