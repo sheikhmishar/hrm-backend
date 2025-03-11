@@ -21,20 +21,19 @@ export const allSalaryDetails: RequestHandler<
   Partial<typeof _queries>
 > = async (req, res, next) => {
   try {
-    ;({
-      salaries: {
-        changedAt: And(
-          MoreThanOrEqual(
-            stringToDate((req.query.from || BEGIN_DATE) as string)
-          ),
-          LessThanOrEqual(stringToDate((req.query.to || END_DATE) as string))
-        )
-      },
-      dateOfJoining: LessThanOrEqual((req.query.to || END_DATE) as string)
-    })
     res.json(
       await AppDataSource.getRepository(Employee).find({
-        where: {},
+        where: {
+          salaries: {
+            changedAt: And(
+              MoreThanOrEqual(
+                stringToDate((req.query.from || BEGIN_DATE) as string)
+              ),
+              LessThanOrEqual(stringToDate((req.query.to || END_DATE) as string))
+            )
+          },
+          dateOfJoining: LessThanOrEqual((req.query.to || END_DATE) as string)
+        },
         relations: { salaries: true }
       })
     )
@@ -54,6 +53,7 @@ export const employeeSalaryDetails: RequestHandler<
       req.params
     )
 
+    // TODO: || [] or remove No Salary Found
     const employeeSalaries = await AppDataSource.getRepository(
       EmployeeSalary
     ).find({ where: { employee: { id: employeeId } } })
