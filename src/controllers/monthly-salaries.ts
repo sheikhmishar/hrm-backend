@@ -147,12 +147,15 @@ export const generateMonthlySalary: RequestHandler<
 
     // TODO: await to Promise all
 
-    const [attendances, paidLeaves, allEmployees, holidays] = await Promise.all(
-      [
+    const [attendances, paidLeaves, activeEmployees, holidays] =
+      await Promise.all([
         queryRunner.manager.getRepository(EmployeeAttendance).find({
           where: {
             date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-            employee: { dateOfJoining: LessThanOrEqual(endDate) }
+            employee: {
+              dateOfJoining: LessThanOrEqual(endDate),
+              status: 'active'
+            }
           },
           relations: { employee: true }
         }),
@@ -161,31 +164,36 @@ export const generateMonthlySalary: RequestHandler<
             {
               from: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
               type: 'paid',
-              employee: { dateOfJoining: LessThanOrEqual(endDate) }
+              employee: {
+                dateOfJoining: LessThanOrEqual(endDate),
+                status: 'active'
+              }
             },
             {
               to: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
               type: 'paid',
-              employee: { dateOfJoining: LessThanOrEqual(endDate) }
+              employee: {
+                dateOfJoining: LessThanOrEqual(endDate),
+                status: 'active'
+              }
             }
           ],
           relations: { employee: true }
         }),
         queryRunner.manager.getRepository(Employee).find({
-          where: { dateOfJoining: LessThanOrEqual(endDate) },
+          where: { dateOfJoining: LessThanOrEqual(endDate), status: 'active' },
           order: { id: 'DESC' }
         }),
         queryRunner.manager.getRepository(Holiday).findBy({
           date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate))
         })
-      ]
-    )
+      ])
 
     const holidaysAfterToday = holidays.filter(
       ({ date }) => stringToDate(date) > currentDate
     ).length
 
-    const employees = allEmployees.map(employee =>
+    const employees = activeEmployees.map(employee =>
       Object.assign(employee, {
         attendances: attendances.filter(
           ({ employee: { id } }) => employee.id === id
@@ -256,10 +264,14 @@ export const generateMonthlySalary: RequestHandler<
         )
 
         const totalLeaves = // or absense
-          totalDays -
-          presentWithNoHolidayOrFullPaidLeave -
-          holidays.length -
-          paidLeavesTotal
+          Math.max(
+            0,
+            totalDays -
+              presentWithNoHolidayOrFullPaidLeave -
+              holidays.length -
+              paidLeavesTotal
+          )
+        // TODO: column add unitDeduction
 
         const leaveDeduction = totalLeaves * (employee.basicSalary / totalDays)
 
@@ -335,15 +347,36 @@ export const withdrawMonthlySalary: RequestHandler<
   Partial<typeof _params>,
   { message: string }
 > = async (req, res, next) => {
+  const queryRunner = AppDataSource.createQueryRunner()
   try {
     const { start_date } = await transformAndValidate(
       SalaryWithdrawBody,
       req.params
     )
 
-    await AppDataSource.getRepository(MonthlySalary).delete({
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+    // TODO: transaction remove loan payments from profile
+    await Promise.all(
+      (
+        await queryRunner.manager.getRepository(MonthlySalary).findBy({
+          monthStartDate: start_date
+        })
+      ).map(({ employee: { id }, loanDeduction }) =>
+        queryRunner.manager
+          .getRepository(Employee)
+          .increment(
+            { id } satisfies Partial<Employee>,
+            'loanRemaining' satisfies keyof Employee,
+            loanDeduction
+          )
+      )
+    )
+
+    await queryRunner.manager.getRepository(MonthlySalary).delete({
       monthStartDate: start_date
     })
+    await queryRunner.commitTransaction()
 
     res.status(CREATED).json({
       message:
@@ -351,7 +384,10 @@ export const withdrawMonthlySalary: RequestHandler<
         start_date.substring(0, 7)
     })
   } catch (err) {
+    await queryRunner.rollbackTransaction()
     next(err)
+  } finally {
+    await queryRunner.release()
   }
 }
 
@@ -408,14 +444,14 @@ export const updateMonthlySalary: RequestHandler<
     if (!result.affected)
       throw new ResponseError(`No Monthly Salary with ID: ${id}`, NOT_FOUND)
 
-    await queryRunner.manager.decrement(
+    const decrementResult = await queryRunner.manager.decrement(
       Employee,
-      {
-        id: previousMonthlySalary!.employee.id
-      } satisfies Partial<Employee>,
+      { id: previousMonthlySalary!.employee.id } satisfies Partial<Employee>,
       'loanRemaining' satisfies keyof Employee,
       monthlySalary.loanDeduction - previousMonthlySalary!.loanDeduction
-    ) // TODO: loanDeduction > 0
+    ) // TODO: loanDeduction > 0 and loanRemaining > 0
+    if (!decrementResult.affected)
+      throw new ResponseError('Loan Update Error', NOT_MODIFIED)
 
     monthlySalary.id = id
     await queryRunner.commitTransaction()
