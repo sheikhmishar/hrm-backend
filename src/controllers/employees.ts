@@ -95,16 +95,16 @@ export const addEmployee: RequestHandler<
         photoFile.filename + '_' + path.extname(photoFile.originalname)
     else delete reqBody.photo
 
-    if (documentFiles)
-      reqBody.documents = reqBody.documents?.map((document, i) => ({
-        ...document,
-        path: documentFiles[i]
-          ? documentFiles[i]!.filename +
-            '_' +
-            path.extname(documentFiles[i]!.originalname)
-          : document?.path || ''
-      }))
-    else delete reqBody.documents
+    reqBody.documents = documentFiles
+      ? reqBody.documents?.map((document, i) => ({
+          ...document,
+          path: documentFiles[i]
+            ? documentFiles[i]!.filename +
+              '_' +
+              path.extname(documentFiles[i]!.originalname)
+            : document?.path || '' // TODO: throw error
+        }))
+      : []
 
     const employee = await transformAndValidate(Employee, reqBody)
 
