@@ -43,6 +43,11 @@ export default class MonthlySalary {
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
+  unitOvertimePayment!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
   overtimePayment!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
@@ -53,7 +58,7 @@ export default class MonthlySalary {
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
-  leaveEncashment !: number
+  leaveEncashment!: number
 
   @Column()
   @IsNumber()
@@ -68,17 +73,37 @@ export default class MonthlySalary {
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
+  unitLateDeduction!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
   penalty!: number
 
-  @Column()
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
   leave!: number
+
+  @Column({ type: 'decimal', precision: 3, scale: 1 })
+  @IsNumber()
+  @Min(0)
+  absence!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
+  unitAbsenceDeduction!: number
 
   @Column({ type: 'decimal', precision: 9, scale: 2 })
   @IsNumber()
   @Min(0)
   leaveDeduction!: number
+
+  @Column({ type: 'decimal', precision: 9, scale: 2 })
+  @IsNumber()
+  @Min(0)
+  absenceDeduction!: number
 
   @Column()
   @IsNumber()

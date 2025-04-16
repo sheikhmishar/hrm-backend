@@ -147,47 +147,44 @@ export const generateMonthlySalary: RequestHandler<
 
     // TODO: await to Promise all
 
-    const [attendances, paidLeaves, activeEmployees, holidays] =
-      await Promise.all([
-        queryRunner.manager.getRepository(EmployeeAttendance).find({
-          where: {
-            date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
+    const [attendances, leaves, activeEmployees, holidays] = await Promise.all([
+      queryRunner.manager.getRepository(EmployeeAttendance).find({
+        where: {
+          date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
+          employee: {
+            dateOfJoining: LessThanOrEqual(endDate),
+            status: 'active'
+          }
+        },
+        relations: { employee: true }
+      }),
+      queryRunner.manager.getRepository(EmployeeLeave).find({
+        where: [
+          {
+            from: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
             employee: {
               dateOfJoining: LessThanOrEqual(endDate),
               status: 'active'
             }
           },
-          relations: { employee: true }
-        }),
-        queryRunner.manager.getRepository(EmployeeLeave).find({
-          where: [
-            {
-              from: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-              type: 'paid',
-              employee: {
-                dateOfJoining: LessThanOrEqual(endDate),
-                status: 'active'
-              }
-            },
-            {
-              to: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
-              type: 'paid',
-              employee: {
-                dateOfJoining: LessThanOrEqual(endDate),
-                status: 'active'
-              }
+          {
+            to: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate)),
+            employee: {
+              dateOfJoining: LessThanOrEqual(endDate),
+              status: 'active'
             }
-          ],
-          relations: { employee: true }
-        }),
-        queryRunner.manager.getRepository(Employee).find({
-          where: { dateOfJoining: LessThanOrEqual(endDate), status: 'active' },
-          order: { id: 'DESC' }
-        }),
-        queryRunner.manager.getRepository(Holiday).findBy({
-          date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate))
-        })
-      ])
+          }
+        ],
+        relations: { employee: true }
+      }),
+      queryRunner.manager.getRepository(Employee).find({
+        where: { dateOfJoining: LessThanOrEqual(endDate), status: 'active' },
+        order: { id: 'DESC' }
+      }),
+      queryRunner.manager.getRepository(Holiday).findBy({
+        date: And(MoreThanOrEqual(startDate), LessThanOrEqual(endDate))
+      })
+    ])
 
     const holidaysAfterToday = holidays.filter(
       ({ date }) => stringToDate(date) > currentDate
@@ -198,7 +195,7 @@ export const generateMonthlySalary: RequestHandler<
         attendances: attendances.filter(
           ({ employee: { id } }) => employee.id === id
         ),
-        leaves: paidLeaves.filter(({ employee: { id } }) => employee.id === id)
+        leaves: leaves.filter(({ employee: { id } }) => employee.id === id)
       } satisfies Partial<Employee>)
     )
 
@@ -215,7 +212,10 @@ export const generateMonthlySalary: RequestHandler<
           totalSalary
         } = employee
 
-        const paidLeavesAfterToday = leaves.reduce(
+        const paidLeaves = leaves.filter(({ type }) => type === 'paid')
+        const unpaidLeaves = leaves.filter(({ type }) => type === 'unpaid')
+
+        const paidLeavesAfterToday = paidLeaves.reduce(
           (total, { from, to, duration }) => {
             const fromDate = new Date(from)
             const toDate = new Date(to)
@@ -240,7 +240,7 @@ export const generateMonthlySalary: RequestHandler<
           (total, attendance) => {
             const date = stringToDate(attendance.date)
 
-            const paidLeave = leaves.find(
+            const paidLeave = paidLeaves.find(
               ({ from, to }) =>
                 stringToDate(from) <= date && date <= stringToDate(to)
             )
@@ -258,33 +258,43 @@ export const generateMonthlySalary: RequestHandler<
           0
         )
 
-        const paidLeavesTotal = leaves.reduce(
+        const paidLeavesTotal = paidLeaves.reduce(
           (total, { totalDays }) => total + totalDays,
           0
         )
 
-        const totalLeaves = // or absense
-          Math.max(
-            0,
-            totalDays -
-              presentWithNoHolidayOrFullPaidLeave -
-              holidays.length -
-              paidLeavesTotal
-          )
-        // TODO: column add unitDeduction
+        const unpaidLeavesTotal = unpaidLeaves.reduce(
+          (total, { totalDays }) => total + totalDays,
+          0
+        )
 
-        const leaveDeduction = totalLeaves * (employee.basicSalary / totalDays)
+        const absence = Math.max(
+          0,
+          totalDays -
+            presentWithNoHolidayOrFullPaidLeave -
+            holidays.length -
+            paidLeavesTotal -
+            unpaidLeavesTotal
+        )
+
+        const unitAbsenceDeduction = totalDays
+          ? employee.basicSalary / totalDays
+          : 0
+
+        const leaveDeduction = unpaidLeavesTotal * unitAbsenceDeduction
+        const absenceDeduction = absence * unitAbsenceDeduction
 
         const late = attendances
           .filter(attendance => attendance.late > 0)
           .reduce((total, attendance) => total + attendance.late, 0)
-        const lateDeduction = late * 10
+        const unitLateDeduction = 10
+        const lateDeduction = late * unitLateDeduction
 
         const overtime = attendances
           .filter(attendance => attendance.overtime > 0)
           .reduce((total, attendance) => total + attendance.overtime, 0)
-        const overtimePayment =
-          (overtime * (employee.basicSalary / 208) * 3) / 60
+        const unitOvertimePayment = ((employee.basicSalary / 208) * 3) / 60
+        const overtimePayment = overtime * unitOvertimePayment
 
         const monthlySalary = await transformAndValidate(MonthlySalary, {
           id: -1,
@@ -294,18 +304,27 @@ export const generateMonthlySalary: RequestHandler<
           houseRent,
           medicalCost,
           late,
+          unitLateDeduction,
           lateDeduction,
-          leave: totalLeaves,
+          leave: unpaidLeavesTotal,
+          absence,
+          unitAbsenceDeduction,
+          absenceDeduction,
           leaveDeduction,
           penalty: 0,
           overtime,
+          unitOvertimePayment,
           overtimePayment,
           leaveEncashment: 0,
           bonus: 0,
           loanDeduction: 0,
           totalSalary: Math.max(
             0,
-            totalSalary - lateDeduction - leaveDeduction + overtimePayment
+            totalSalary -
+              lateDeduction -
+              leaveDeduction -
+              absenceDeduction +
+              overtimePayment
           ),
           paymentMethod: 'Cash',
           monthStartDate: startDate,
