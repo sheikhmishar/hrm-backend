@@ -45,14 +45,13 @@ import SalaryType from './SalaryType'
 @Entity()
 export default class Employee {
   public static STATUSES = ['active', 'inactive'] as const
-  public static APPLICABILITY = ['applicable', 'inApplicable'] as const
   public static GENDERS = ['Male', 'Female', 'Others'] as const
   public static TYPES = ['SuperAdmin', 'Admin', 'Employee'] as const
 
   @PrimaryGeneratedColumn()
   id!: number
 
-  @Column()
+  @Column({ length: 100 })
   @Length(1, 100)
   name!: string
 
@@ -171,7 +170,7 @@ export default class Employee {
   @Min(0)
   loanRemaining!: number
 
-  @Column({ nullable: true })
+  @Column({ type: 'decimal', precision: 9, scale: 2, nullable: true })
   @IsOptional()
   @IsNumber({ allowNaN: false })
   taskWisePayment?: number
@@ -197,13 +196,20 @@ export default class Employee {
   })
   officeEndTime!: string
 
-  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
-  @IsIn(Employee.APPLICABILITY)
-  checkedInLateFee!: (typeof Employee.APPLICABILITY)[number]
+  @Column()
+  @IsNumber({ allowNaN: false })
+  @Min(0)
+  absenseDeductionPerDay!: number
 
-  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
-  @IsIn(Employee.APPLICABILITY)
-  overtime!: (typeof Employee.APPLICABILITY)[number]
+  @Column()
+  @IsNumber({ allowNaN: false })
+  @Min(0)
+  lateDeductionPerMinute!: number
+
+  @Column()
+  @IsNumber({ allowNaN: false })
+  @Min(0)
+  overtimeBonusPerMinute!: number
 
   @Column({ type: 'date', nullable: true })
   @IsOptional()
@@ -226,10 +232,6 @@ export default class Employee {
       obj.noticePeriodRemark !== ''
   )
   noticePeriodRemark?: string
-
-  @Column({ type: 'enum', enum: Employee.APPLICABILITY })
-  @IsIn(Employee.APPLICABILITY)
-  extraBonus!: (typeof Employee.APPLICABILITY)[number]
 
   @Column({
     type: 'enum',

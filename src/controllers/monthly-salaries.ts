@@ -117,6 +117,9 @@ class SalaryGenerateBody {
   endDate!: string
 }
 
+// TODO: total day calculation starts from max(joining date, start of month)
+// TODO: total day calculation end at min(last day, end  of month)
+// TODO: salary generate only for joined employees
 export const generateMonthlySalary: RequestHandler<
   {},
   { message: string },

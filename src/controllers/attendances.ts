@@ -19,6 +19,7 @@ import { createDebug } from '../utils/debug'
 import {
   BEGIN_DATE,
   END_DATE,
+  SETTING_KEYS,
   capitalizeDelim,
   stringToDate,
   timeToDate
@@ -30,44 +31,29 @@ import SITEMAP from './_routes/SITEMAP'
 const { CREATED, NOT_FOUND } = statusCodes
 const { _params, _queries } = SITEMAP.attendances
 
+let lateGracePeriod = 0
+let overtimeGracePeriod = 0
+
 async function modifyAttendance(
   employee: Employee,
-  attendance: EmployeeAttendance,
-  settings: Setting[]
+  attendance: EmployeeAttendance
 ) {
   const arrivalTime = timeToDate(attendance.arrivalTime).getTime()
   const leaveTime = timeToDate(attendance.leaveTime).getTime()
-  let late =
-    employee.checkedInLateFee === 'applicable'
-      ? Math.ceil(
-          (arrivalTime - timeToDate(employee.officeStartTime).getTime()) / 60000
-        )
-      : -1
+  let late = Math.ceil(
+    (arrivalTime - timeToDate(employee.officeStartTime).getTime()) / 60000
+  )
   attendance.totalTime = Math.ceil((leaveTime - arrivalTime) / 60000)
   const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
     date: attendance.date
   })
-  let overtime =
-    employee.overtime === 'applicable'
-      ? isHoliday
-        ? attendance.totalTime
-        : Math.ceil(
-            (leaveTime - timeToDate(employee.officeEndTime).getTime()) / 60000
-          )
-      : -1
+  let overtime = isHoliday
+    ? attendance.totalTime
+    : Math.ceil(
+        (leaveTime - timeToDate(employee.officeEndTime).getTime()) / 60000
+      )
 
-  // TODO: pass via param
-  const lateGracePeriod = parseInt(
-    settings.find(
-      setting => setting.property === 'ATTENDANCE_ENTRY_GRACE_PERIOD'
-    )?.value || '0m'
-  )
-  const overtimeGracePeriod = parseInt(
-    settings.find(
-      setting => setting.property === 'ATTENDANCE_LEAVE_GRACE_PERIOD'
-    )?.value || '0m'
-  )
-  if (late > -1) late = late > lateGracePeriod ? late - lateGracePeriod : 0
+  late = late > lateGracePeriod ? late - lateGracePeriod : 0
   if (overtime > -1)
     overtime =
       overtime > overtimeGracePeriod ? overtime - overtimeGracePeriod : 0
@@ -227,6 +213,18 @@ export const addEmployeeAttendance: RequestHandler<
       throw error
     }
     const settings = await AppDataSource.manager.find(Setting)
+    lateGracePeriod = parseInt(
+      settings.find(
+        setting =>
+          setting.property === SETTING_KEYS.ATTENDANCE_ENTRY_GRACE_PERIOD
+      )?.value || '0m'
+    )
+    overtimeGracePeriod = parseInt(
+      settings.find(
+        setting =>
+          setting.property === SETTING_KEYS.ATTENDANCE_LEAVE_GRACE_PERIOD
+      )?.value || '0m'
+    )
     const data: { error?: string }[] = []
     for (let i = 0; i < req.body.length; i++) {
       try {
@@ -279,12 +277,12 @@ export const addEmployeeAttendance: RequestHandler<
         const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
           date: attendance.date
         })
-        if (employee.overtime === 'inApplicable' && isHoliday) {
+        if (!employee.overtimeBonusPerMinute && isHoliday) {
           data.push({ error: 'Employee overtime not applicable at holiday' })
           continue
         }
 
-        await modifyAttendance(employee, attendance, settings)
+        await modifyAttendance(employee, attendance)
         await AppDataSource.manager.insert(EmployeeAttendance, attendance)
         data.push({})
       } catch (error) {

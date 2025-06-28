@@ -24,7 +24,7 @@ export class Migration1720349148338 implements MigrationInterface {
                 \`totalSalary\` int NOT NULL,
                 \`loanTaken\` decimal(9,2) NOT NULL,
                 \`loanRemaining\` decimal(9,2) NOT NULL,
-                \`taskWisePayment\` int NULL,
+                \`taskWisePayment\` decimal(9,2) NULL,
                 \`wordLimit\` int NULL,
                 \`officeStartTime\` time NOT NULL,
                 \`officeEndTime\` time NOT NULL,
