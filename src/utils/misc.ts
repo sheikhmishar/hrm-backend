@@ -77,6 +77,19 @@ export function IsAtOrAfterDate<T extends { [k: string]: any }>(
     })
   }
 }
+const ensureKVSame = <T extends string>(v: { [k in T]?: k }) => v
+
+export const SETTING_KEYS = {
+  ATTENDANCE_ENTRY_GRACE_PERIOD: 'ATTENDANCE_ENTRY_GRACE_PERIOD',
+  ATTENDANCE_LEAVE_GRACE_PERIOD: 'ATTENDANCE_LEAVE_GRACE_PERIOD',
+  PAYROLL_CYCLE_START_DATE: 'PAYROLL_CYCLE_START_DATE'
+} as const
+
+ensureKVSame(SETTING_KEYS)
+
+export const SETTINGS = { PAYROLL_CYCLE_START_DATE: 1 } satisfies {
+  [k in keyof typeof SETTING_KEYS]?: string | number
+}
 
 export const BEGIN_DATE = '1900-01-01',
   END_DATE = '2299-01-01'
@@ -103,21 +116,22 @@ export const getNextMonth = (date: Date) => {
 
 export const getDateRange = (date: Date) => {
   let [from, to] = [new Date(date), new Date(date)]
-  if (from.getDate() < 15) {
+  if (from.getDate() < SETTINGS.PAYROLL_CYCLE_START_DATE)
     from = getPreviousMonth(from)
-    from.setDate(15)
-    to.setDate(14)
-  } else {
-    from.setDate(15)
-    to = getNextMonth(to)
-    to.setDate(14)
-  }
+  else to = getNextMonth(to)
+  from.setDate(SETTINGS.PAYROLL_CYCLE_START_DATE)
+  to.setDate(SETTINGS.PAYROLL_CYCLE_START_DATE - 1)
   return [from, to] as const
 }
 
 export const getYearRange = (date: Date) => {
   const year = date.getFullYear()
-  return [`${year}-01-15`, `${year + 1}-01-14`] as const
+  return [
+    `${year}-01-${SETTINGS.PAYROLL_CYCLE_START_DATE}`,
+    new Date(year + 1, 0, SETTINGS.PAYROLL_CYCLE_START_DATE - 1)
+      .toISOString()
+      .split('T')[0]!
+  ] as const
 }
 
 export const dayDifference = (date1: Date, date2: Date, absolute = true) => {
@@ -136,14 +150,16 @@ export function generateCalender(from: Date, to: Date) {
 
   const date = new Date(from)
   date.setDate(date.getDate() - 1)
-  const daysInMonth = new Array(dayDifference(from, to)).fill(null).map(() => {
-    date.setTime(date.getTime() + 24 * 3600000)
-    return dateToString(date).substring(5)
-  })
 
-  return daysInMonth.map((date, i) => ({
-    dayName: nameOfDays[(firstDay + i) % 7] as (typeof nameOfDays)[number],
-    date: date.substring(3),
-    month: date.substring(0, 2)
-  }))
+  return new Array(dayDifference(from, to))
+    .fill(null)
+    .map(() => {
+      date.setTime(date.getTime() + 24 * 3600000)
+      return dateToString(date).substring(5)
+    })
+    .map((date, i) => ({
+      dayName: nameOfDays[(firstDay + i) % 7] as (typeof nameOfDays)[number],
+      date: date.substring(3),
+      month: date.substring(0, 2)
+    }))
 }
