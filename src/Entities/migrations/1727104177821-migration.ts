@@ -1,5 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm'
 
+import { SETTING_KEYS } from '../../utils/misc'
+
 export class Migration1727104177821 implements MigrationInterface {
   name = 'Migration1727104177821'
 
@@ -11,8 +13,12 @@ export class Migration1727104177821 implements MigrationInterface {
         PRIMARY KEY (\`property\`)
       ) ENGINE = InnoDB
     `)
+    // TODO: constant
     await queryRunner.query(`
-      INSERT INTO \`setting\` (\`property\`,\`value\`) VALUES ('ATTENDANCE_ENTRY_GRACE_PERIOD','10m'), ('ATTENDANCE_LEAVE_GRACE_PERIOD','10m')
+      INSERT INTO \`setting\` (\`property\`,\`value\`)
+      VALUES  ('${SETTING_KEYS.ATTENDANCE_ENTRY_GRACE_PERIOD}', '10m'),
+              ('${SETTING_KEYS.ATTENDANCE_LEAVE_GRACE_PERIOD}', '10m'),
+              ('${SETTING_KEYS.PAYROLL_CYCLE_START_DATE}', '01')
     `)
     await queryRunner.query(`
       ALTER TABLE \`user\`

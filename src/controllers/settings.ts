@@ -1,14 +1,15 @@
+import { IsNotEmpty, IsString } from 'class-validator'
 import type { RequestHandler } from 'express'
 
-import { IsNotEmpty, IsString } from 'class-validator'
 import Setting from '../Entities/Setting'
 import { ResponseError } from '../configs'
 import AppDataSource from '../configs/db'
+import { SETTINGS, SETTING_KEYS } from '../utils/misc'
 import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
 
-const { NOT_FOUND } = statusCodes
+const { NOT_FOUND, UNPROCESSABLE_ENTITY } = statusCodes
 const { _params } = SITEMAP.settings
 
 export const allSettings: RequestHandler<{}, Setting[]> = async (
@@ -64,6 +65,16 @@ export const updateSetting: RequestHandler<
       ...previousSetting,
       ...req.body
     })
+    if (setting.property === SETTING_KEYS.PAYROLL_CYCLE_START_DATE) {
+      const value = parseInt(setting.value)
+      if (parseInt(setting.value) < 1 || parseInt(setting.value) > 28)
+        throw new ResponseError(
+          'Value must be between 1 and 28',
+          UNPROCESSABLE_ENTITY
+        )
+
+      SETTINGS.PAYROLL_CYCLE_START_DATE = value
+    }
 
     const result = await AppDataSource.manager.update(
       Setting,
