@@ -4,7 +4,7 @@
 @api = {{host}}/api
 @createdAt = {{$datetime iso8601}}
 @modifiedBy = {{$processEnv USERNAME}}
-@system = skylane-hrm-_{{$guid} }
+@system = hrm-_{{$guid} }
 
 #####################################################
 
@@ -347,3 +347,40 @@ Content-Type: image/png
 
 < "./env.sample"
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+# ALTER TABLE `employee_leave` CHANGE `duration` `duration` ENUM('fullday','first_halfday','second_halfday') NOT NULL DEFAULT 'fullday';
+# ALTER TABLE `monthly_salary` ADD `leaveEncashment` DECIMAL(9,2) NOT NULL AFTER `bonus`;
+# ALTER TABLE `employee_salary` ADD `remarks` VARCHAR(100) NULL AFTER `wordLimit`;
+# UPDATE `employee_attendance` SET `late` = `late` - 10 WHERE `late` > 10;
+# UPDATE `employee_attendance` SET `overtime` = `overtime` - 10 WHERE `overtime` > 10;
+
+# update imran to 999
+UPDATE `employee` SET `id` = '61' WHERE `employee`.`id` = 84;
+# update nafis to 998
+UPDATE `employee` SET `id` = '62' WHERE `employee`.`id` = 87;
+# update new user to 84
+UPDATE `employee` SET `id` = '84' WHERE `employee`.`id` = 88;
+
+ALTER TABLE `employee` AUTO_INCREMENT = 1;
+
+INSERT INTO `employee` (`id`, `name`, `phoneNumber`, `altPhoneNumber`, `email`, `dateOfBirth`, `fullAddress`, `gender`, `photo`, `dateOfJoining`, `basicSalary`, `houseRent`, `foodCost`, `conveyance`, `medicalCost`, `totalSalary`, `loanTaken`, `loanRemaining`, `taskWisePayment`, `wordLimit`, `officeStartTime`, `officeEndTime`, `checkedInLateFee`, `overtime`, `noticePeriod`, `noticePeriodRemark`, `extraBonus`, `status`, `createdDate`, `companyId`, `departmentId`, `branchId`, `designationId`, `dutyTypeId`, `salaryTypeId`) VALUES (NULL, 'fdgf@gdf.com', 'fdgf@gdf.com', 'fdgf@gdf.com', 'fdgf@gdf.com', '2025-03-05', 'fdgf@gdf.com', 'Male', 'fdgf@gdf.com', '2025-03-12', '12', '12', '12', '12', '12', '12', '1', '1', NULL, NULL, '17:37:31', '49:37:31', 'applicable', 'applicable', NULL, NULL, '', 'active', 'current_timestamp(6).000000', '3', '7', '1', '18', '1', '1');
+
+ALTER TABLE `monthly_salary` CHANGE `leave` `leave` DECIMAL(9,2) NOT NULL;
+ALTER TABLE `monthly_salary` CHANGE `leaveDeduction` `leaveDeduction` DECIMAL(9,2) NOT NULL;
+ALTER TABLE `monthly_salary` ADD `unitOvertimePayment` decimal(9,2) NOT NULL AFTER `overtime`;
+ALTER TABLE `monthly_salary` ADD `absence` decimal(3,1) NOT NULL AFTER `leave`;
+ALTER TABLE `monthly_salary` ADD `unitAbsenceDeduction` decimal(9,2) NOT NULL AFTER `absence`;
+ALTER TABLE `monthly_salary` ADD `absenceDeduction` decimal(9,2) NOT NULL AFTER `leaveDeduction`;
+ALTER TABLE `monthly_salary` ADD `unitLateDeduction` decimal(9,2) NOT NULL AFTER `late`;
+# UPDATE `monthly_salary` SET `unitOvertimePayment` = CASE WHEN `overtime` = 0 THEN `basicSalary` / 208 * 3 / 60 ELSE `overtimePayment` / `overtime` END;
+UPDATE `monthly_salary` SET `unitOvertimePayment` = ((`basicSalary` / 208) * 3) / 60;
+UPDATE `monthly_salary` SET `unitLateDeduction` = 10;
+UPDATE `monthly_salary` SET `unitAbsenceDeduction` = CASE WHEN `leave` = 0 THEN 0 ELSE `leaveDeduction` / `leave` END;
+UPDATE `employee` SET `loanRemaining` = `loanTaken`;
+UPDATE `monthly_salary` SET `loanDeduction` = 0;
+# TODO: delete loan installment
+# TODO: delete loanTaken
+
+ALTER TABLE `employee` MODIFY `taskWisePayment` DECIMAL(9,2) NULL;
+SELECT `id`,`name`,`overtime`,`taskWisePayment` from `employee` where `id` in (15,16,17,18,19,20,21,22,23,24,25,27,34,35,38,39,40,43,45,46,49,52,54,55,57,58,65,67,77,78,79,86,87,88);
+UPDATE `employee` SET `overtime`='applicable',`taskWisePayment`=0.6 where `id` in (15,16,17,18,19,20,21,22,23,24,25,27,34,35,38,39,40,43,45,46,49,52,54,55,57,58,65,67,77,78,79,86,87,88);

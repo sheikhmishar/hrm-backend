@@ -70,9 +70,9 @@ export const employeeLeaveDetails: RequestHandler<
       req.params
     )
 
-    const year = parseInt(req.query.from || END_DATE) // TODO: validate isNaN
-    const yearStart = `${year}-01-15`
-    const yearEnd = `${year + 1}-01-14`
+    const [yearStart, yearEnd] = getYearRange(
+      new Date(parseInt(req.query.from || END_DATE))
+    ) // TODO: validate isNaN
 
     const employeeLeave = await AppDataSource.getRepository(Employee).findOne({
       where: [

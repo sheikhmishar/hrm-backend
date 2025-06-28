@@ -59,7 +59,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "paths": { "frontend/*": ["../../skylane-hrm-frontend/*"] }
+    "paths": { "frontend/*": ["../../hrm-frontend/*"] }
   },
   "include": ["./src"],
   "exclude": [

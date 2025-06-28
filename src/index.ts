@@ -6,6 +6,7 @@ import morgan from 'morgan'
 
 import http from 'http'
 
+import Setting from './Entities/Setting'
 import * as config from './configs'
 import AppDataSource from './configs/db'
 import env from './configs/env'
@@ -13,6 +14,7 @@ import middlewares from './controllers/_middlewares'
 import SITEMAP from './controllers/_routes/SITEMAP'
 import router from './controllers/_routes/api'
 import { createDebug } from './utils/debug'
+import { SETTINGS, SETTING_KEYS } from './utils/misc'
 
 const app = express()
 const server = http.createServer(app)
@@ -25,7 +27,7 @@ if (!env.production) {
   )
   app.use(middlewares.headersInspector)
 }
-app.set('name', 'skylane-hrm-backend')
+app.set('name', 'hrm-backend')
 app.disable('x-powered-by')
 app.use(cors(config.corsConfig))
 app.use((req, res, next) => {
@@ -53,7 +55,16 @@ const debugError = createDebug('server', config.dbgErrOpt)
 const debugDbError = createDebug('db', config.dbgErrOpt)
 const debugDbSuccess = createDebug('db', config.dbgSuccOpt)
 AppDataSource.initialize()
-  .then(({ options }) => debugDbSuccess(options))
+  .then(async ({ options }) => {
+    debugDbSuccess(options)
+    const setting = await AppDataSource.getRepository(Setting).findOneBy({
+      property: SETTING_KEYS.PAYROLL_CYCLE_START_DATE
+    })
+
+    if (!setting) throw new Error('PAYROLL_CYCLE_START_DATE not set')
+
+    SETTINGS.PAYROLL_CYCLE_START_DATE = parseInt(setting) || 0
+  })
   .catch(debugDbError)
 server
   .listen(PORT, IP)
@@ -84,3 +95,4 @@ process
   .on('unhandledRejection', debugProcError)
   .once('SIGINT', onSignal)
   .once('SIGUSR2', onSignal)
+  .once('SIGHUP', onSignal)
