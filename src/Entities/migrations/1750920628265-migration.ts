@@ -10,20 +10,24 @@ export class Migration1750920628265 implements MigrationInterface {
             ADD \`lateDeductionPerMinute\` int NOT NULL AFTER \`overtime\`,
             ADD \`overtimeBonusPerMinute\` int NOT NULL AFTER \`overtime\`,
             DROP COLUMN \`checkedInLateFee\`,
-            DROP \`overtime\`,
             DROP \`extraBonus\`
+        `);
+        await queryRunner.query(`
+            ALTER TABLE \`employee\` DROP \`overtime\`
         `);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`
             ALTER TABLE \`employee\`
-            DROP COLUMN \`overtimeBonusPerMinute\`,
-            DROP COLUMN \`lateDeductionPerMinute\`,
-            DROP COLUMN \`absenseDeductionPerDay\`,
-            ADD \`checkedInLateFee\` int NOT NULL AFTER \`overtime\`,
-            ADD \`overtime\` int NOT NULL AFTER \`overtime\`,
-            ADD \`extraBonus\` int NOT NULL AFTER \`overtime\`
+            ADD \`overtime\` int NOT NULL AFTER \`overtimeBonusPerMinute\`
+            ADD \`checkedInLateFee\` int NOT NULL AFTER \`overtimeBonusPerMinute\`,
+            ADD \`extraBonus\` int NOT NULL AFTER \`overtimeBonusPerMinute\`,
+            DROP \`lateDeductionPerMinute\`,
+            DROP \`absenseDeductionPerDay\`
+        `);
+        await queryRunner.query(`
+            ALTER TABLE \`employee\` DROP COLUMN \`overtimeBonusPerMinute\`
         `);
     }
 

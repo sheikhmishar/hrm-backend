@@ -5,8 +5,10 @@ import { seed } from '../../seeds'
 import { seedEmployees } from '../../seeds/employees'
 import SITEMAP from '../SITEMAP'
 import attendancesRouter from './attendances'
+import bonusTypesRouter from './bonus-types'
 import branchesRouter from './branches'
 import companiesRouter from './companies'
+import deductionTypesRouter from './deduction-types'
 import departmentsRouter from './departments'
 import designationsRouter from './designations'
 import dutyTypesRouter from './duty-types'
@@ -39,6 +41,8 @@ router.use(departmentsRouter)
 router.use(designationsRouter)
 router.use(monthlySalariesRouter)
 router.use(dutyTypesRouter)
+router.use(bonusTypesRouter)
+router.use(deductionTypesRouter)
 router.use(salaryTypesRouter)
 router.use(settingsRouter)
 
