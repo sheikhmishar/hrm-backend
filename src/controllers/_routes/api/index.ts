@@ -2,7 +2,6 @@ import express from 'express'
 
 import env from '../../../configs/env'
 import { seed } from '../../seeds'
-import { seedEmployees } from '../../seeds/employees'
 import SITEMAP from '../SITEMAP'
 import attendancesRouter from './attendances'
 import bonusTypesRouter from './bonus-types'
@@ -24,10 +23,7 @@ import usersRouter from './users'
 
 const router = express.Router()
 
-if (!env.production) {
-  router.get(SITEMAP.seed!, seed)
-  router.get(SITEMAP.seedEmployees!, seedEmployees)
-}
+if (!env.production) router.get(SITEMAP.seed!, seed)
 router.use(usersRouter)
 router.use(employeesRouter)
 router.use(companiesRouter)

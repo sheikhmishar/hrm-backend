@@ -1,33 +1,30 @@
 import { Type } from 'class-transformer'
 import {
+  IsArray,
   IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
-  Matches
+  Min,
+  ValidateNested
 } from 'class-validator'
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn
+} from 'typeorm'
 
-import { IsAfterTime } from '../utils/misc'
 import Employee from './Employee'
+import EmployeeAttendanceSession from './EmployeeAttendanceSessions'
 
 @Entity()
 export default class EmployeeAttendance {
   @PrimaryGeneratedColumn()
   public id!: number
-
-  @Column({ type: 'time' })
-  @IsString()
-  @Matches(/\d{2}:\d{2}/i, { message: 'Bad Arrival Time' })
-  public arrivalTime!: string
-
-  @Column({ type: 'time' })
-  @Matches(/\d{2}:\d{2}/i, { message: 'Bad Leave Time' })
-  @IsAfterTime('arrivalTime', {
-    message: 'Leave Time Cannot Be Less Than Arrival Time'
-  })
-  public leaveTime!: string
 
   @Column()
   @IsNumber({ allowNaN: false })
@@ -39,6 +36,7 @@ export default class EmployeeAttendance {
 
   @Column()
   @IsNumber({ allowNaN: false })
+  @Min(0)
   public totalTime!: number
 
   @Column({ type: 'date' })
@@ -49,6 +47,17 @@ export default class EmployeeAttendance {
   @IsOptional()
   @IsString()
   public tasks?: string
+
+  @OneToMany(
+    _type => EmployeeAttendanceSession,
+    session => session.attendance,
+    { nullable: false, eager: true, cascade: true }
+  )
+  @IsArray()
+  @ValidateNested()
+  @JoinColumn()
+  @Type(_ => EmployeeAttendanceSession)
+  sessions!: EmployeeAttendanceSession[]
 
   @ManyToOne(_type => Employee, employee => employee.attendances, {
     nullable: false,

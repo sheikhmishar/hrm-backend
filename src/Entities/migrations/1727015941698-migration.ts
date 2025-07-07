@@ -7,14 +7,13 @@ export class Migration1727015941698 implements MigrationInterface {
     await queryRunner.query(`
       CREATE TABLE \`employee_attendance\` (
         \`id\` int NOT NULL AUTO_INCREMENT,
-        \`arrivalTime\` time NOT NULL,
-        \`leaveTime\` time NOT NULL,
         \`date\` date NOT NULL,
         \`late\` int NOT NULL,
         \`overtime\` int NOT NULL,
         \`totalTime\` int NOT NULL,
         \`tasks\` varchar(255) NULL,
         \`employeeId\` int NOT NULL,
+        UNIQUE INDEX \`employee_attendance_date\` (\`id\`, \`date\`),
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
     `)
@@ -68,6 +67,9 @@ export class Migration1727015941698 implements MigrationInterface {
     await queryRunner.query(
       `ALTER TABLE \`employee_attendance\` DROP FOREIGN KEY \`attendance_employee\``
     )
+    await queryRunner.query(`
+      DROP INDEX \`employee_attendance_date\` ON \`employee_attendance\`
+    `)
     await queryRunner.query(`DROP TABLE \`employee_leave\``)
     await queryRunner.query(`DROP TABLE \`employee_contact\``)
     await queryRunner.query(`DROP TABLE \`employee_attendance\``)

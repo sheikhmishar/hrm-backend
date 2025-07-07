@@ -1,4 +1,9 @@
-import { ValidationError } from 'class-validator'
+import {
+  IsDateString,
+  IsNotEmpty,
+  Matches,
+  ValidationError
+} from 'class-validator'
 import type { RequestHandler } from 'express'
 import type { QueryError } from 'mysql2'
 import { And, LessThanOrEqual, MoreThanOrEqual } from 'typeorm'
@@ -9,7 +14,6 @@ import Employee from '../Entities/Employee'
 import EmployeeAttendance from '../Entities/EmployeeAttendance'
 import EmployeeLeave from '../Entities/EmployeeLeave'
 import Holiday from '../Entities/Holiday'
-import Setting from '../Entities/Setting'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
 import { ResponseError, dbgErrOpt } from '../configs'
 import AppDataSource from '../configs/db'
@@ -19,7 +23,7 @@ import { createDebug } from '../utils/debug'
 import {
   BEGIN_DATE,
   END_DATE,
-  SETTING_KEYS,
+  SETTINGS,
   capitalizeDelim,
   stringToDate,
   timeToDate
@@ -28,38 +32,50 @@ import transformAndValidate from '../utils/transformAndValidate'
 import { statusCodes } from './_middlewares/response-code'
 import SITEMAP from './_routes/SITEMAP'
 
-const { CREATED, NOT_FOUND } = statusCodes
+const { CREATED, NOT_FOUND, CONFLICT, UNAUTHORIZED } = statusCodes
 const { _params, _queries } = SITEMAP.attendances
 
-let lateGracePeriod = 0
-let overtimeGracePeriod = 0
-
-async function modifyAttendance(
+async function processAttendance(
   employee: Employee,
   attendance: EmployeeAttendance
 ) {
-  const arrivalTime = timeToDate(attendance.arrivalTime).getTime()
-  const leaveTime = timeToDate(attendance.leaveTime).getTime()
-  let late = Math.ceil(
-    (arrivalTime - timeToDate(employee.officeStartTime).getTime()) / 60000
-  )
-  attendance.totalTime = Math.ceil((leaveTime - arrivalTime) / 60000)
   const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
     date: attendance.date
   })
-  let overtime = isHoliday
-    ? attendance.totalTime
-    : Math.ceil(
-        (leaveTime - timeToDate(employee.officeEndTime).getTime()) / 60000
+  const officeStartTime = timeToDate(employee.officeStartTime).getTime()
+  const officeEndTime = timeToDate(employee.officeEndTime).getTime()
+  attendance.late = 0
+  attendance.overtime = 0
+  attendance.totalTime = 0
+  attendance.sessions.forEach((session, i) => {
+    const arrivalTime = timeToDate(session.arrivalTime).getTime()
+    const leaveTime = session.leaveTime
+      ? timeToDate(session.leaveTime).getTime()
+      : undefined
+    const sessionTime = leaveTime
+      ? Math.ceil((leaveTime - arrivalTime) / 60000)
+      : 0
+
+    if (!session.sessionTime) session.sessionTime = sessionTime
+
+    attendance.totalTime += sessionTime
+
+    if (!i)
+      attendance.late = Math.max(
+        0,
+        Math.ceil((arrivalTime - officeStartTime) / 60000) -
+          (parseInt(SETTINGS.ATTENDANCE_ENTRY_GRACE_PERIOD) || 0)
       )
-
-  late = late > lateGracePeriod ? late - lateGracePeriod : 0
-  if (overtime > -1)
-    overtime =
-      overtime > overtimeGracePeriod ? overtime - overtimeGracePeriod : 0
-
-  attendance.late = late
-  attendance.overtime = overtime
+    if (i === attendance.sessions.length - 1)
+      attendance.overtime = Math.max(
+        0,
+        (isHoliday
+          ? attendance.totalTime
+          : leaveTime
+          ? Math.ceil((leaveTime - officeEndTime) / 60000)
+          : 0) - (parseInt(SETTINGS.ATTENDANCE_LEAVE_GRACE_PERIOD) || 0)
+      )
+  })
 
   return attendance
 }
@@ -187,12 +203,153 @@ export const employeeAttendanceDetails: RequestHandler<
           )
         }
       },
-      relations: { attendances: true }
+      relations: { attendances: true },
+      order: { attendances: { date: 'asc', sessions: { arrivalTime: 'ASC' } } }
     })
     if (!employeeAttendance)
       throw new ResponseError('No Employee with criteria', NOT_FOUND)
 
     res.json(employeeAttendance)
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const employeeCurrentStatus: RequestHandler<
+  {},
+  { message: 'PRESENT' | 'BREAK' },
+  Partial<{ date: string; time: string }>
+> = async (req, res, next) => {
+  try {
+    const attendancesToday = await AppDataSource.manager.findOne(
+      EmployeeAttendance,
+      {
+        where: {
+          employee: { id: req.user?.employeeId },
+          date: req.body.date
+        },
+        order: { sessions: { arrivalTime: 'desc' } }
+      }
+    )
+    if (
+      attendancesToday?.sessions[0] &&
+      !attendancesToday.sessions[0].leaveTime
+    ) {
+      res.json({ message: 'PRESENT' })
+      return
+    }
+
+    res.json({ message: 'BREAK' })
+  } catch (err) {
+    next(err)
+  }
+}
+
+class TimesheetBody {
+  @IsDateString()
+  @IsNotEmpty()
+  date!: string
+
+  @Matches(/\d{2}:\d{2}/i, { message: 'Bad Time' })
+  @IsNotEmpty()
+  time!: string
+}
+
+export const addBreak: RequestHandler<
+  {},
+  { message: string },
+  TimesheetBody
+> = async (req, res, next) => {
+  // TODO: validate in routes
+  if (!req.user?.employeeId) {
+    res.status(UNAUTHORIZED).json({ message: 'Not an employee' })
+    return
+  }
+  try {
+    const { date, time } = await transformAndValidate(TimesheetBody, req.body)
+
+    const employee = await AppDataSource.manager.findOne(Employee, {
+      where: { id: req.user?.employeeId }
+    })
+    if (!employee) throw new ResponseError('Invalid employee', NOT_FOUND)
+    // TODO: validate req.body
+    // TODO: check conflicting range
+    const attendance = await AppDataSource.manager.findOne(EmployeeAttendance, {
+      where: { employee: { id: req.user?.employeeId }, date },
+      order: { sessions: { arrivalTime: 'desc' } }
+    })
+
+    const lastSession = attendance?.sessions[0]
+    if (!lastSession || lastSession.leaveTime) {
+      res.status(CONFLICT).json({ message: 'Already in break' })
+      return
+    }
+    if (!lastSession.leaveTime) {
+      lastSession.leaveTime = time
+      processAttendance(employee, attendance)
+      await transformAndValidate(EmployeeAttendance, attendance)
+      await AppDataSource.manager.save(
+        EmployeeAttendance,
+        attendance satisfies EmployeeAttendance
+      )
+    }
+
+    res.json({ message: 'Attendance status changed to break' })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const addResume: RequestHandler<
+  {},
+  { message: string },
+  TimesheetBody
+> = async (req, res, next) => {
+  if (!req.user?.employeeId) {
+    res.status(UNAUTHORIZED).json({ message: 'Not an employee' })
+    return
+  }
+  try {
+    const { date, time } = await transformAndValidate(TimesheetBody, req.body)
+
+    const employee = await AppDataSource.manager.findOne(Employee, {
+      where: { id: req.user?.employeeId }
+    })
+    if (!employee) throw new ResponseError('Invalid employee', NOT_FOUND)
+    const attendance = await AppDataSource.manager.findOne(EmployeeAttendance, {
+      where: { employee: { id: req.user?.employeeId }, date },
+      order: { sessions: { arrivalTime: 'desc' } }
+    })
+    const lastSession = attendance?.sessions[0]
+    // TODO: check conflicting range
+    if (lastSession && !lastSession.leaveTime) {
+      res.status(CONFLICT).json({ message: 'Already working' })
+      return
+    }
+    if (!lastSession || lastSession.leaveTime) {
+      const newAttendance = await transformAndValidate(EmployeeAttendance, {
+        id: -1,
+        date,
+        late: 0,
+        overtime: 0,
+        totalTime: 0,
+        sessions: [
+          ...(attendance ? attendance.sessions : []),
+          {
+            id: -1,
+            arrivalTime: time,
+            sessionTime: 0,
+            attendance: { id: -1 } as EmployeeAttendance
+          }
+        ],
+        employee: { id: -1 } as Employee
+      } satisfies EmployeeAttendance)
+      newAttendance.employee.id = req.user.employeeId
+      processAttendance(employee, newAttendance)
+      await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
+    }
+
+    res.json({ message: 'Attendance status changed to working' })
   } catch (err) {
     next(err)
   }
@@ -212,19 +369,7 @@ export const addEmployeeAttendance: RequestHandler<
       error.status = 422
       throw error
     }
-    const settings = await AppDataSource.manager.find(Setting)
-    lateGracePeriod = parseInt(
-      settings.find(
-        setting =>
-          setting.property === SETTING_KEYS.ATTENDANCE_ENTRY_GRACE_PERIOD
-      )?.value || '0m'
-    )
-    overtimeGracePeriod = parseInt(
-      settings.find(
-        setting =>
-          setting.property === SETTING_KEYS.ATTENDANCE_LEAVE_GRACE_PERIOD
-      )?.value || '0m'
-    )
+
     const data: { error?: string }[] = []
     for (let i = 0; i < req.body.length; i++) {
       try {
@@ -235,17 +380,44 @@ export const addEmployeeAttendance: RequestHandler<
         if (req.body[i]?.employee.id)
           attendance.employee.id = req.body[i]!.employee.id
 
+        if (!attendance.sessions[0]) {
+          data.push({ error: 'Cannot add attendance without session data' })
+          continue
+        }
+        attendance.sessions.forEach(
+          session => (session.attendance = attendance)
+        )
+
         if (stringToDate(attendance.date) > currentDate) {
           data.push({ error: 'Cannot add attendance in future date' })
           continue
         }
         let alreadyExists = await AppDataSource.manager.existsBy(Employee, {
           id: attendance.employee.id,
-          attendances: { date: attendance.date }
+          attendances: [
+            {
+              date: attendance.date,
+              sessions: {
+                arrivalTime: And(
+                  MoreThanOrEqual(attendance.sessions[0].arrivalTime),
+                  LessThanOrEqual(attendance.sessions[0]?.leaveTime || '23:59')
+                )
+              }
+            },
+            {
+              date: attendance.date,
+              sessions: {
+                leaveTime: And(
+                  MoreThanOrEqual(attendance.sessions[0].arrivalTime),
+                  LessThanOrEqual(attendance.sessions[0]?.leaveTime || '23:59')
+                )
+              }
+            }
+          ]
         })
         if (alreadyExists) {
           data.push({
-            error: 'Attendance entry already exists at the same date'
+            error: 'Attendance entry already exists at the same date and time'
           })
           continue
         }
@@ -282,8 +454,8 @@ export const addEmployeeAttendance: RequestHandler<
           continue
         }
 
-        await modifyAttendance(employee, attendance)
-        await AppDataSource.manager.insert(EmployeeAttendance, attendance)
+        await processAttendance(employee, attendance)
+        await AppDataSource.manager.save(EmployeeAttendance, attendance)
         data.push({})
       } catch (error) {
         debugError(
@@ -361,10 +533,9 @@ export const updateEmployeeAttendance: RequestHandler<
       ...req.body
     })
 
-    attendance.employee.id =
-      req.body.employee?.id || previousAttendance.employee.id
-
-    await AppDataSource.manager.update(EmployeeAttendance, { id }, attendance)
+    attendance.id = previousAttendance.id
+    attendance.employee.id = previousAttendance.employee.id
+    await AppDataSource.manager.save(EmployeeAttendance, attendance)
 
     res.json({ message: 'Attendance updated', data: attendance })
   } catch (err) {
