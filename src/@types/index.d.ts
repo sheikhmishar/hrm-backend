@@ -75,5 +75,9 @@ declare global {
   interface Float64Array {
     includes(searchElement?: number, fromIndex?: number): boolean
   }
+
+  type KeysOfObjectOfType<T, TCondition> = {
+    [K in keyof T]: T[K] extends TCondition ? K : never
+  }[keyof T]
 }
 export {}

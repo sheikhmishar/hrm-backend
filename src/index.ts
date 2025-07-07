@@ -14,7 +14,7 @@ import middlewares from './controllers/_middlewares'
 import SITEMAP from './controllers/_routes/SITEMAP'
 import router from './controllers/_routes/api'
 import { createDebug } from './utils/debug'
-import { SETTINGS, SETTING_KEYS } from './utils/misc'
+import { SETTINGS } from './utils/misc'
 
 const app = express()
 const server = http.createServer(app)
@@ -57,13 +57,28 @@ const debugDbSuccess = createDebug('db', config.dbgSuccOpt)
 AppDataSource.initialize()
   .then(async ({ options }) => {
     debugDbSuccess(options)
-    const setting = await AppDataSource.getRepository(Setting).findOneBy({
-      property: SETTING_KEYS.PAYROLL_CYCLE_START_DATE
+    type NumericKeys = KeysOfObjectOfType<typeof SETTINGS, number>[]
+    type StringKeys = KeysOfObjectOfType<typeof SETTINGS, string>[]
+
+    const settings = await AppDataSource.getRepository(Setting).find()
+
+    ;(['PAYROLL_CYCLE_START_DATE'] satisfies NumericKeys).forEach(key => {
+      const value = parseInt(
+        settings.find(({ property }) => property === key)?.value
+      )
+      if (isNaN(value) || value < 1) throw new Error(key + ' not set')
+      SETTINGS[key] = value
     })
-
-    if (!setting) throw new Error('PAYROLL_CYCLE_START_DATE not set')
-
-    SETTINGS.PAYROLL_CYCLE_START_DATE = parseInt(setting) || 0
+    ;(
+      [
+        'ATTENDANCE_ENTRY_GRACE_PERIOD',
+        'ATTENDANCE_LEAVE_GRACE_PERIOD'
+      ] satisfies StringKeys
+    ).forEach(key => {
+      const value = settings.find(({ property }) => property === key)?.value
+      if (!value) throw new Error(key + ' not set')
+      SETTINGS[key] = value
+    })
   })
   .catch(debugDbError)
 server

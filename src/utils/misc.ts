@@ -87,9 +87,11 @@ export const SETTING_KEYS = {
 
 ensureKVSame(SETTING_KEYS)
 
-export const SETTINGS = { PAYROLL_CYCLE_START_DATE: 1 } satisfies {
-  [k in keyof typeof SETTING_KEYS]?: string | number
-}
+export const SETTINGS = {
+  PAYROLL_CYCLE_START_DATE: 1,
+  ATTENDANCE_ENTRY_GRACE_PERIOD: '10m',
+  ATTENDANCE_LEAVE_GRACE_PERIOD: '10m'
+} satisfies { [k in keyof typeof SETTING_KEYS]: string | number }
 
 export const BEGIN_DATE = '1900-01-01',
   END_DATE = '2299-01-01'
