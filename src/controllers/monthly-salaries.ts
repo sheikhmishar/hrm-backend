@@ -212,6 +212,9 @@ export const generateMonthlySalary: RequestHandler<
           foodCost,
           houseRent,
           medicalCost,
+          absenseDeductionPerDay,
+          lateDeductionPerMinute,
+          overtimeBonusPerMinute,
           totalSalary
         } = employee
 
@@ -280,24 +283,13 @@ export const generateMonthlySalary: RequestHandler<
             unpaidLeavesTotal
         )
 
-        const unitAbsenceDeduction = totalDays
-          ? employee.basicSalary / totalDays
-          : 0
-
-        const leaveDeduction = unpaidLeavesTotal * unitAbsenceDeduction
-        const absenceDeduction = absence * unitAbsenceDeduction
-
         const late = attendances
           .filter(attendance => attendance.late > 0)
           .reduce((total, attendance) => total + attendance.late, 0)
-        const unitLateDeduction = 10
-        const lateDeduction = late * unitLateDeduction
 
         const overtime = attendances
           .filter(attendance => attendance.overtime > 0)
           .reduce((total, attendance) => total + attendance.overtime, 0)
-        const unitOvertimePayment = ((employee.basicSalary / 208) * 3) / 60
-        const overtimePayment = overtime * unitOvertimePayment
 
         const monthlySalary = await transformAndValidate(MonthlySalary, {
           id: -1,
@@ -307,28 +299,21 @@ export const generateMonthlySalary: RequestHandler<
           houseRent,
           medicalCost,
           late,
-          unitLateDeduction,
-          lateDeduction,
+          unitLateDeduction: lateDeductionPerMinute,
+          lateDeduction: 0,
           leave: unpaidLeavesTotal,
           absence,
-          unitAbsenceDeduction,
-          absenceDeduction,
-          leaveDeduction,
+          unitAbsenceDeduction: absenseDeductionPerDay,
+          absenceDeduction: 0,
+          leaveDeduction: 0,
           penalty: 0,
           overtime,
-          unitOvertimePayment,
-          overtimePayment,
+          unitOvertimePayment: overtimeBonusPerMinute,
+          overtimePayment: 0,
           leaveEncashment: 0,
           bonus: 0,
           loanDeduction: 0,
-          totalSalary: Math.max(
-            0,
-            totalSalary -
-              lateDeduction -
-              leaveDeduction -
-              absenceDeduction +
-              overtimePayment
-          ),
+          totalSalary,
           paymentMethod: 'Cash',
           monthStartDate: startDate,
           status: 'Unpaid',
