@@ -329,42 +329,45 @@ export const addResume: RequestHandler<
       relations: { employee: true }
     })
     const lastSession = attendance?.sessions[0]
+    const newSession = await transformAndValidate(EmployeeAttendanceSession, {
+      id: -1,
+      arrivalTime: time,
+      sessionTime: 0,
+      attendance: { id: -1 } as EmployeeAttendance
+    })
     // TODO: check conflicting range
-    if (lastSession && !lastSession.leaveTime) {
-      res.status(CONFLICT).json({ message: 'Already working' })
-      return
-    }
-    if (!lastSession) {
-      const newAttendance = await transformAndValidate(EmployeeAttendance, {
-        id: -1,
-        date,
-        late: 0,
-        overtime: 0,
-        totalTime: 0,
-        sessions: [
-          {
-            id: -1,
-            arrivalTime: time,
-            sessionTime: 0,
-            attendance: { id: -1 } as EmployeeAttendance
-          }
-        ],
-        employee: { id: -1 } as Employee
-      } satisfies EmployeeAttendance)
-      newAttendance.employee.id = req.user.employeeId
-      processAttendance(employee, newAttendance)
-      await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
-    } else if (lastSession.leaveTime) {
-      const newSession = await transformAndValidate(EmployeeAttendanceSession, {
-        id: -1,
-        arrivalTime: time,
-        sessionTime: 0,
-        attendance: { id: -1 } as EmployeeAttendance
-      })
+    if (lastSession) {
+      if (!lastSession.leaveTime) {
+        res.status(CONFLICT).json({ message: 'Already working' })
+        return
+      }
+
       attendance.sessions = [...attendance.sessions, newSession]
       processAttendance(employee, attendance)
       await AppDataSource.manager.save(EmployeeAttendance, attendance)
+
+      return
     }
+    if (attendance) {
+      attendance.sessions = [newSession]
+      processAttendance(employee, attendance)
+      await AppDataSource.manager.save(EmployeeAttendance, attendance)
+
+      return
+    }
+
+    const newAttendance = await transformAndValidate(EmployeeAttendance, {
+      id: -1,
+      date,
+      late: 0,
+      overtime: 0,
+      totalTime: 0,
+      sessions: [newSession],
+      employee: { id: -1 } as Employee
+    } satisfies EmployeeAttendance)
+    newAttendance.employee.id = req.user.employeeId
+    processAttendance(employee, newAttendance)
+    await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
     // TODO: validate other holidays stuff
     res.json({ message: 'Attendance status changed to working' })
   } catch (err) {

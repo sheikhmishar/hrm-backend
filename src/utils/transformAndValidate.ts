@@ -31,7 +31,7 @@ function plainToInstanceMod<T, V>(
 const validateMod = (object: object, validatorOptions: ValidatorOptions = {}) =>
   validateOrReject(object, {
     stopAtFirstError: env.production,
-    enableDebugMessages: true,
+    enableDebugMessages: !env.production,
     forbidUnknownValues: true,
     whitelist: true,
     // forbidNonWhitelisted: true,
