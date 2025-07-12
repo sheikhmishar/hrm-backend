@@ -53,9 +53,9 @@ export default class EmployeeAttendance {
     session => session.attendance,
     { nullable: false, eager: true, cascade: true }
   )
+  @JoinColumn()
   @IsArray()
   @ValidateNested()
-  @JoinColumn()
   @Type(_ => EmployeeAttendanceSession)
   sessions!: EmployeeAttendanceSession[]
 

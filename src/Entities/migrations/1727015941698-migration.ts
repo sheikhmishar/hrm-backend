@@ -13,7 +13,7 @@ export class Migration1727015941698 implements MigrationInterface {
         \`totalTime\` int NOT NULL,
         \`tasks\` varchar(255) NULL,
         \`employeeId\` int NOT NULL,
-        UNIQUE INDEX \`employee_attendance_date\` (\`id\`, \`date\`),
+        UNIQUE INDEX \`employee_attendance_date\` (\`employeeId\`, \`date\`),
         PRIMARY KEY (\`id\`)
       ) ENGINE = InnoDB
     `)

@@ -12,6 +12,7 @@ import { snakeCase } from 'typeorm/util/StringUtils'
 import Company from '../Entities/Company'
 import Employee from '../Entities/Employee'
 import EmployeeAttendance from '../Entities/EmployeeAttendance'
+import EmployeeAttendanceSession from '../Entities/EmployeeAttendanceSessions'
 import EmployeeLeave from '../Entities/EmployeeLeave'
 import Holiday from '../Entities/Holiday'
 import IdParams, { EmployeeIdParams } from '../Entities/_IdParams'
@@ -274,14 +275,15 @@ export const addBreak: RequestHandler<
     const { date, time } = await transformAndValidate(TimesheetBody, req.body)
 
     const employee = await AppDataSource.manager.findOne(Employee, {
-      where: { id: req.user?.employeeId }
+      where: { id: req.user.employeeId }
     })
     if (!employee) throw new ResponseError('Invalid employee', NOT_FOUND)
     // TODO: validate req.body
     // TODO: check conflicting range
     const attendance = await AppDataSource.manager.findOne(EmployeeAttendance, {
       where: { employee: { id: req.user?.employeeId }, date },
-      order: { sessions: { arrivalTime: 'desc' } }
+      order: { sessions: { arrivalTime: 'desc' } },
+      relations: { employee: true }
     })
 
     const lastSession = attendance?.sessions[0]
@@ -318,12 +320,13 @@ export const addResume: RequestHandler<
     const { date, time } = await transformAndValidate(TimesheetBody, req.body)
 
     const employee = await AppDataSource.manager.findOne(Employee, {
-      where: { id: req.user?.employeeId }
+      where: { id: req.user.employeeId }
     })
     if (!employee) throw new ResponseError('Invalid employee', NOT_FOUND)
     const attendance = await AppDataSource.manager.findOne(EmployeeAttendance, {
-      where: { employee: { id: req.user?.employeeId }, date },
-      order: { sessions: { arrivalTime: 'desc' } }
+      where: { employee: { id: req.user.employeeId }, date },
+      order: { sessions: { arrivalTime: 'desc' } },
+      relations: { employee: true }
     })
     const lastSession = attendance?.sessions[0]
     // TODO: check conflicting range
@@ -331,7 +334,7 @@ export const addResume: RequestHandler<
       res.status(CONFLICT).json({ message: 'Already working' })
       return
     }
-    if (!lastSession || lastSession.leaveTime) {
+    if (!lastSession) {
       const newAttendance = await transformAndValidate(EmployeeAttendance, {
         id: -1,
         date,
@@ -339,7 +342,6 @@ export const addResume: RequestHandler<
         overtime: 0,
         totalTime: 0,
         sessions: [
-          ...(attendance ? attendance.sessions : []),
           {
             id: -1,
             arrivalTime: time,
@@ -352,8 +354,18 @@ export const addResume: RequestHandler<
       newAttendance.employee.id = req.user.employeeId
       processAttendance(employee, newAttendance)
       await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
+    } else if (lastSession.leaveTime) {
+      const newSession = await transformAndValidate(EmployeeAttendanceSession, {
+        id: -1,
+        arrivalTime: time,
+        sessionTime: 0,
+        attendance: { id: -1 } as EmployeeAttendance
+      })
+      attendance.sessions = [...attendance.sessions, newSession]
+      processAttendance(employee, attendance)
+      await AppDataSource.manager.save(EmployeeAttendance, attendance)
     }
-
+    // TODO: validate other holidays stuff
     res.json({ message: 'Attendance status changed to working' })
   } catch (err) {
     next(err)
