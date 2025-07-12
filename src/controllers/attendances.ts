@@ -215,19 +215,24 @@ export const employeeAttendanceDetails: RequestHandler<
   }
 }
 
+class StatusParams {
+  @IsDateString()
+  @IsNotEmpty()
+  date!: string
+}
+
 export const employeeCurrentStatus: RequestHandler<
   {},
   { message: 'PRESENT' | 'BREAK' },
-  Partial<{ date: string; time: string }>
+  {},
+  Partial<StatusParams>
 > = async (req, res, next) => {
   try {
+    const { date } = await transformAndValidate(StatusParams, req.query)
     const attendancesToday = await AppDataSource.manager.findOne(
       EmployeeAttendance,
       {
-        where: {
-          employee: { id: req.user?.employeeId },
-          date: req.body.date
-        },
+        where: { employee: { id: req.user?.employeeId }, date },
         order: { sessions: { arrivalTime: 'desc' } }
       }
     )
