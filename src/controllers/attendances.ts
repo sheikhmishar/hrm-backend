@@ -363,9 +363,9 @@ export const addResume: RequestHandler<
       overtime: 0,
       totalTime: 0,
       sessions: [newSession],
-      employee: { id: -1 } as Employee
+      employee
     } satisfies EmployeeAttendance)
-    newAttendance.employee.id = req.user.employeeId
+    newAttendance.employee.id = employee.id
     processAttendance(employee, newAttendance)
     await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
     // TODO: validate other holidays stuff
