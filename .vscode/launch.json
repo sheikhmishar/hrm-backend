@@ -12,6 +12,16 @@
       "type": "node"
     },
     {
+      "name": "Attach:Shikor",
+      "address": "api.shikor.info",
+      "port": 9229,
+      "request": "attach",
+      "skipFiles": ["<node_internals>/**"],
+      "type": "node",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/home/shikor/backend-hrm-renovoit"
+    },
+    {
       "name": "DBG",
       "type": "node",
       "request": "launch",
