@@ -287,19 +287,21 @@ export const addBreak: RequestHandler<
     })
 
     const lastSession = attendance?.sessions[0]
-    if (!lastSession || lastSession.leaveTime) {
+    if (!lastSession) {
       res.status(CONFLICT).json({ message: 'Already in break' })
       return
     }
-    if (!lastSession.leaveTime) {
-      lastSession.leaveTime = time
-      processAttendance(employee, attendance)
-      await transformAndValidate(EmployeeAttendance, attendance)
-      await AppDataSource.manager.save(
-        EmployeeAttendance,
-        attendance satisfies EmployeeAttendance
-      )
+    if (lastSession.leaveTime) {
+      res.status(CONFLICT).json({ message: 'Already in break' })
+      return
     }
+    lastSession.leaveTime = time
+    processAttendance(employee, attendance)
+    await transformAndValidate(EmployeeAttendance, attendance)
+    await AppDataSource.manager.save(
+      EmployeeAttendance,
+      attendance satisfies EmployeeAttendance
+    )
 
     res.json({ message: 'Attendance status changed to break' })
   } catch (err) {
@@ -345,29 +347,25 @@ export const addResume: RequestHandler<
       attendance.sessions = [...attendance.sessions, newSession]
       processAttendance(employee, attendance)
       await AppDataSource.manager.save(EmployeeAttendance, attendance)
-
-      return
-    }
-    if (attendance) {
+    } else if (attendance) {
       attendance.sessions = [newSession]
       processAttendance(employee, attendance)
       await AppDataSource.manager.save(EmployeeAttendance, attendance)
-
-      return
+    } else {
+      const newAttendance = await transformAndValidate(EmployeeAttendance, {
+        id: -1,
+        date,
+        late: 0,
+        overtime: 0,
+        totalTime: 0,
+        sessions: [newSession],
+        employee
+      } satisfies EmployeeAttendance)
+      newAttendance.employee.id = employee.id
+      processAttendance(employee, newAttendance)
+      await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
     }
 
-    const newAttendance = await transformAndValidate(EmployeeAttendance, {
-      id: -1,
-      date,
-      late: 0,
-      overtime: 0,
-      totalTime: 0,
-      sessions: [newSession],
-      employee
-    } satisfies EmployeeAttendance)
-    newAttendance.employee.id = employee.id
-    processAttendance(employee, newAttendance)
-    await AppDataSource.manager.save(EmployeeAttendance, newAttendance)
     // TODO: validate other holidays stuff
     res.json({ message: 'Attendance status changed to working' })
   } catch (err) {
