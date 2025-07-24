@@ -22,12 +22,46 @@ export const pascalToSnakeCase = (pascalCaseString: string) =>
   pascalCaseString.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
 
 export const timeToDate = (time: string) => new Date('2021-01-01T' + time)
-export const stringToDate = (str: string) => new Date(str.replace(/-/g, '/'))
+export const stringToDate = (date: string, time = '') =>
+  new Date(`${date.replace(/-/g, '/')} ${time}`)
 
 export const dateToString = (date: Date) =>
-  `${date.getFullYear()}-${(date.getMonth() + 1)
-    .toString()
-    .padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+  [
+    date.getFullYear(),
+    (date.getMonth() + 1).toString().padStart(2, '0'),
+    date.getDate().toString().padStart(2, '0')
+  ].join('-')
+
+export const dateToTime = (date: Date) => date.toTimeString().substring(0, 8)
+
+export const isCrossDayTime = (time: string) =>
+  parseInt(time.split(':')[0]) > 23
+
+export const crossDayToSingleDayTime = (time: string) =>
+  time
+    .split(':')
+    .map((v, i) => (!i ? (parseInt(v) % 24).toString().padStart(2, '0') : v))
+    .join(':')
+
+export const singleDayToCrossDayTime = (time: string) =>
+  time
+    .split(':')
+    .map((v, i) => (!i ? parseInt(v) + 24 : v))
+    .join(':')
+
+export function getWorkingDayStartDate(
+  entryTimeDate: Date,
+  dayStartTime: string
+) {
+  const [startHour = 0, startMinute] = dayStartTime.split(':').map(Number)
+  const workingDayStart = new Date(entryTimeDate)
+  workingDayStart.setHours(startHour, startMinute)
+
+  if (entryTimeDate < workingDayStart)
+    workingDayStart.setDate(entryTimeDate.getDate() - 1)
+
+  return workingDayStart
+}
 
 import {
   ValidationArguments,
