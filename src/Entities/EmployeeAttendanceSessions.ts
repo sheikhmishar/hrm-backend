@@ -10,14 +10,14 @@ export default class EmployeeAttendanceSession {
   @PrimaryGeneratedColumn()
   public id!: number
 
-  @Column()
+  @Column({ type: 'time' })
   @Matches(/^(?:[0-3][0-9]|4[0-7]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Bad Arrival Time'
   })
   public arrivalTime!: string
 
   // FIXME: optional match
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'time' })
   @IsOptional()
   @Matches(/^(?:(?:[0-3][0-9]|4[0-7]):[0-5][0-9](?::[0-5][0-9])?)?$/, {
     message: 'Bad Leave Time'
