@@ -311,6 +311,7 @@ const seedEmployees = async (count: number) => {
           : undefined,
         officeEndTime: '11:00:00',
         officeStartTime: '06:00:00',
+        dayStartTime: '00:00:00',
         absenseDeductionPerDay: 0,
         lateDeductionPerMinute: 0,
         overtimeBonusPerMinute: 0,

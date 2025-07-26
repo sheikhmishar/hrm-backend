@@ -1,5 +1,5 @@
-import { Transform, Type } from 'class-transformer'
-import { IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator'
+import { Type } from 'class-transformer'
+import { IsNumber, IsOptional, Matches, Min } from 'class-validator'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 
 import { IsAfterTime } from '../utils/misc'
@@ -10,16 +10,18 @@ export default class EmployeeAttendanceSession {
   @PrimaryGeneratedColumn()
   public id!: number
 
-  @Column({ type: 'time' })
-  @IsString()
-  @Matches(/\d{2}:\d{2}/i, { message: 'Bad Arrival Time' })
+  @Column()
+  @Matches(/^(?:[0-3][0-9]|4[0-7]):[0-5][0-9](?::[0-5][0-9])?$/, {
+    message: 'Bad Arrival Time'
+  })
   public arrivalTime!: string
 
-  // FIXME:
-  @Column({ type: 'time', nullable: true })
-  @Transform(({ value }) => (!value ? undefined : value))
+  // FIXME: optional match
+  @Column({ nullable: true })
   @IsOptional()
-  @Matches(/\d{2}:\d{2}/i, { message: 'Bad Leave Time' })
+  @Matches(/^(?:(?:[0-3][0-9]|4[0-7]):[0-5][0-9](?::[0-5][0-9])?)?$/, {
+    message: 'Bad Leave Time'
+  })
   @IsAfterTime('arrivalTime', {
     message: 'Leave Time Cannot Be Less Than Arrival Time'
   })

@@ -184,21 +184,23 @@ export default class Employee {
   @Matches(/^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
-  @IsString()
+  @IsAfterTime('dayStartTime', {
+    message: 'Office Start Time Cannot Be Before Day Start Time'
+  })
   officeStartTime!: string
 
-  @Column({ type: 'time' })
+  @Column()
   @Matches(/^(?:[0-3][0-9]|4[0-7]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Office Start Time must match HH:MM[:SS] format'
   })
   @IsAfterTime('officeStartTime', {
-    message: 'Office End Time Cannot Be Less Than Office Start Time'
+    message: 'Office End Time Cannot Be Before Office Start Time'
   })
   officeEndTime!: string
 
   // TODO: cannot be between office time, probably must be before office start time - buffer
   @Column({ type: 'time' })
-  @Matches(/^(?:[0-3][0-9]|4[0-7]):[0-5][0-9]$/, {
+  @Matches(/^(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?$/, {
     message: 'Day Start Time must match HH:MM[:SS] format'
   })
   dayStartTime!: string
