@@ -26,6 +26,12 @@ import {
   END_DATE,
   SETTINGS,
   capitalizeDelim,
+  crossDayToSingleDayTime,
+  dateToString,
+  dateToTime,
+  getWorkingDayStartDate,
+  isCrossDayTime,
+  singleDayToCrossDayTime,
   stringToDate,
   timeToDate
 } from '../utils/misc'
@@ -61,12 +67,14 @@ async function processAttendance(
 
     attendance.totalTime += sessionTime
 
+    // FIXME: find all the intervals after start and add to late
     if (!i)
       attendance.late = Math.max(
         0,
         Math.ceil((arrivalTime - officeStartTime) / 60000) -
           (parseInt(SETTINGS.ATTENDANCE_ENTRY_GRACE_PERIOD) || 0)
       )
+    // FIXME: find all the intervals after end and add to overtime
     if (i === attendance.sessions.length - 1)
       attendance.overtime = Math.max(
         0,
@@ -373,6 +381,85 @@ export const addResume: RequestHandler<
   }
 }
 
+interface AttendanceInput {
+  entryDate: string
+  arrivalTime: string
+  leaveTime?: string
+  employee: { dayStartTime: string }
+}
+
+function getCrossDayAttendance(input: AttendanceInput) {
+  const {
+    entryDate: entryDateString,
+    arrivalTime,
+    employee: { dayStartTime }
+  } = input
+  let { leaveTime } = input
+
+  let leaveDateString: undefined | string
+  if (leaveTime) {
+    if (arrivalTime > leaveTime || isCrossDayTime(leaveTime)) {
+      const newDate = stringToDate(entryDateString)
+      newDate.setDate(newDate.getDate() + 1)
+      leaveDateString = dateToString(newDate)
+    } else leaveDateString = entryDateString
+
+    if (isCrossDayTime(leaveTime))
+      leaveTime = crossDayToSingleDayTime(leaveTime)
+  }
+
+  const entryTimeDate = stringToDate(entryDateString, arrivalTime)
+  const leaveTimeDate = leaveDateString
+    ? stringToDate(leaveDateString, leaveTime)
+    : undefined
+
+  type Segment = { date: string; start: string; end?: string }
+  const segments: Segment[] = []
+
+  let currentWorkingStartDate = getWorkingDayStartDate(
+    entryTimeDate,
+    dayStartTime
+  )
+
+  while (currentWorkingStartDate < (leaveTimeDate || entryTimeDate)) {
+    const nextWorkingStartDate = new Date(currentWorkingStartDate)
+    nextWorkingStartDate.setDate(currentWorkingStartDate.getDate() + 1)
+
+    const segmentStartDate = new Date(
+      Math.max(currentWorkingStartDate.getTime(), entryTimeDate.getTime())
+    )
+    let segmentEndDate: Date | undefined
+    if (leaveTimeDate)
+      segmentEndDate = new Date(
+        Math.min(
+          nextWorkingStartDate.getTime() - 60000,
+          leaveTimeDate.getTime()
+        )
+      )
+
+    if (!segmentEndDate || segmentStartDate < segmentEndDate) {
+      const currentWorkingDateString = dateToString(currentWorkingStartDate)
+
+      segments.push({
+        date: currentWorkingDateString,
+        start:
+          dateToString(segmentStartDate) > currentWorkingDateString
+            ? singleDayToCrossDayTime(dateToTime(segmentStartDate))
+            : dateToTime(segmentStartDate),
+        end: segmentEndDate
+          ? dateToString(segmentEndDate) > currentWorkingDateString
+            ? singleDayToCrossDayTime(dateToTime(segmentEndDate))
+            : dateToTime(segmentEndDate)
+          : undefined
+      })
+    }
+
+    currentWorkingStartDate = nextWorkingStartDate
+  }
+
+  return segments
+}
+
 const debugError = createDebug('controller:attendance', dbgErrOpt)
 
 export const addEmployeeAttendance: RequestHandler<
@@ -380,8 +467,12 @@ export const addEmployeeAttendance: RequestHandler<
   { message: string; data?: { error?: string }[] },
   EmployeeAttendance[]
 > = async (req, res, next) => {
-  const currentDate = new Date()
+  const queryRunner = AppDataSource.createQueryRunner()
+  const currentDate = new Date() // TODO: 2 day buffer
   try {
+    await queryRunner.connect()
+    await queryRunner.startTransaction()
+
     if (!Array.isArray(req.body) || !req.body.length) {
       const error = new ResponseError('Invalid attendance list')
       error.status = 422
@@ -410,49 +501,8 @@ export const addEmployeeAttendance: RequestHandler<
           data.push({ error: 'Cannot add attendance in future date' })
           continue
         }
-        let alreadyExists = await AppDataSource.manager.existsBy(Employee, {
-          id: attendance.employee.id,
-          attendances: [
-            {
-              date: attendance.date,
-              sessions: {
-                arrivalTime: And(
-                  MoreThanOrEqual(attendance.sessions[0].arrivalTime),
-                  LessThanOrEqual(attendance.sessions[0]?.leaveTime || '23:59')
-                )
-              }
-            },
-            {
-              date: attendance.date,
-              sessions: {
-                leaveTime: And(
-                  MoreThanOrEqual(attendance.sessions[0].arrivalTime),
-                  LessThanOrEqual(attendance.sessions[0]?.leaveTime || '23:59')
-                )
-              }
-            }
-          ]
-        })
-        if (alreadyExists) {
-          data.push({
-            error: 'Attendance entry already exists at the same date and time'
-          })
-          continue
-        }
-        alreadyExists = await AppDataSource.manager.existsBy(EmployeeLeave, {
-          type: 'paid',
-          duration: 'fullday',
-          employee: { id: attendance.employee.id },
-          from: LessThanOrEqual(attendance.date),
-          to: MoreThanOrEqual(attendance.date)
-        })
-        if (alreadyExists) {
-          data.push({
-            error: 'Fullday Paid leave already exists at the same date'
-          })
-          continue
-        }
-        const employee = await AppDataSource.manager.findOneBy(Employee, {
+
+        const employee = await queryRunner.manager.findOneBy(Employee, {
           id: attendance.employee.id
         })
         if (!employee) {
@@ -464,6 +514,23 @@ export const addEmployeeAttendance: RequestHandler<
           continue
         }
 
+        const paidLeaveExists = await queryRunner.manager.existsBy(
+          EmployeeLeave,
+          {
+            type: 'paid',
+            duration: 'fullday',
+            employee: { id: attendance.employee.id },
+            from: LessThanOrEqual(attendance.date),
+            to: MoreThanOrEqual(attendance.date)
+          }
+        )
+        if (paidLeaveExists) {
+          data.push({
+            error: 'Fullday Paid leave already exists at the same date'
+          })
+          continue
+        }
+
         const isHoliday = await AppDataSource.getRepository(Holiday).existsBy({
           date: attendance.date
         })
@@ -472,8 +539,92 @@ export const addEmployeeAttendance: RequestHandler<
           continue
         }
 
-        await processAttendance(employee, attendance)
-        await AppDataSource.manager.save(EmployeeAttendance, attendance)
+        let alreadyExists = false
+
+        for (const { arrivalTime, leaveTime } of attendance.sessions) {
+          const crossDayAttendance = getCrossDayAttendance({
+            arrivalTime,
+            leaveTime,
+            entryDate: attendance.date,
+            employee
+          })
+
+          for (const { date, start, end } of crossDayAttendance) {
+            alreadyExists = await queryRunner.manager.existsBy(Employee, {
+              id: attendance.employee.id,
+              attendances: [
+                {
+                  date,
+                  sessions: {
+                    arrivalTime: And(
+                      MoreThanOrEqual(start),
+                      LessThanOrEqual(
+                        end || singleDayToCrossDayTime(employee.dayStartTime) // TODO: -1 minute  // TODO: replace all 23:59
+                      )
+                    )
+                  }
+                },
+                {
+                  date,
+                  sessions: {
+                    leaveTime: And(
+                      MoreThanOrEqual(start),
+                      LessThanOrEqual(
+                        end || singleDayToCrossDayTime(employee.dayStartTime)
+                      )
+                    )
+                  }
+                }
+              ]
+            })
+            if (alreadyExists) break
+          }
+          if (alreadyExists) break
+        }
+
+        if (alreadyExists) {
+          data.push({
+            error: 'Attendance entry already exists at the same date and time'
+          })
+          continue
+        }
+
+        for (const { arrivalTime, leaveTime } of attendance.sessions) {
+          const crossDayAttendance = getCrossDayAttendance({
+            arrivalTime,
+            leaveTime,
+            entryDate: attendance.date,
+            employee
+          })
+
+          for (const { date, start, end } of crossDayAttendance) {
+            const attendance =
+              (await queryRunner.manager.findOneBy(EmployeeAttendance, {
+                date,
+                employee
+              })) ||
+              (await transformAndValidate(EmployeeAttendance, {
+                id: -1,
+                date,
+                employee,
+                late: 0,
+                overtime: 0,
+                totalTime: 0,
+                sessions: []
+              }))
+            const newSession: EmployeeAttendanceSession =
+              await transformAndValidate(EmployeeAttendanceSession, {
+                id: -1,
+                arrivalTime: start,
+                leaveTime: end,
+                attendance,
+                sessionTime: 0
+              })
+            attendance.sessions = [...attendance.sessions, newSession]
+            await processAttendance(employee, attendance)
+            await queryRunner.manager.save(EmployeeAttendance, attendance)
+          }
+        }
         data.push({})
       } catch (error) {
         debugError(
@@ -524,9 +675,13 @@ export const addEmployeeAttendance: RequestHandler<
       }
     }
 
+    await queryRunner.commitTransaction()
     res.status(CREATED).json({ message: 'Attendance Processed', data })
   } catch (err) {
+    await queryRunner.rollbackTransaction()
     next(err)
+  } finally {
+    await queryRunner.release()
   }
 }
 

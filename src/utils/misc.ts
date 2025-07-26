@@ -21,7 +21,6 @@ export const capitalizeDelim = (value: string, delim = '_', replace = '_id_') =>
 export const pascalToSnakeCase = (pascalCaseString: string) =>
   pascalCaseString.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
 
-export const timeToDate = (time: string) => new Date('2021-01-01T' + time)
 export const stringToDate = (date: string, time = '') =>
   new Date(`${date.replace(/-/g, '/')} ${time}`)
 
@@ -48,6 +47,11 @@ export const singleDayToCrossDayTime = (time: string) =>
     .split(':')
     .map((v, i) => (!i ? parseInt(v) + 24 : v))
     .join(':')
+
+export const timeToDate = (time: string) =>
+  new Date(
+    `2021/01/0${isCrossDayTime(time) ? 3 : 2} ${crossDayToSingleDayTime(time)}`
+  )
 
 export function getWorkingDayStartDate(
   entryTimeDate: Date,
